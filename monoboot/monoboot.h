@@ -6,6 +6,7 @@
 
 #define MB_IMAGE_MAX    32
 #define MB_CONFIG_MAX   8000
+#define MB_TIMESTR_MAX  200
 
 #define MB_DEBUG(...) fprintf(stderr, __VA_ARGS__)
 

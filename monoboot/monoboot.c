@@ -12,10 +12,7 @@
 /* $Id$ */
 
 /*
- * XXX: exit(3) is nfg in this scenario
  *      path the config file into the rw filesys
- *	logic for third image
- *	datestamp the config upon write
  */
 
 #define C99_SOURCE

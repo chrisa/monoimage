@@ -7,6 +7,7 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <time.h>
 #include <confuse.h>
 #include "monoboot.h"
 #include "monoboot_cmds.h"
@@ -357,6 +358,8 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
 void cmd_write(cfg_t *cfg, char **cmdline) {
     FILE *fp = fopen(MB_CONF_NEW, "w");
     char *config;
+    char timestr[MB_TIMESTR_MAX];
+    time_t t;
 
     MB_DEBUG("[mb] cmd_write: writing config to %s\n", MB_CONF_NEW);
     if (!fp) {
@@ -364,7 +367,14 @@ void cmd_write(cfg_t *cfg, char **cmdline) {
 	return;
     }
     
+    t = time(NULL);
+    if (!strftime(timestr, MB_TIMESTR_MAX, "%a, %d %b %Y %H:%M:%S %z", 
+		  localtime(&t))) {
+	MB_DEBUG("[mb] cmd_write: strftime failed.\n");
+    }
+
     config = get_running_config(cfg);
+    fprintf(fp, "config saved by monoboot at %s\n\n", timestr);
     fputs(config, fp);
     fclose(fp);
     
