@@ -88,7 +88,7 @@ char *get_disk_ls(cfg_t *cfg) {
     DIR *d;
     char *listing;
     char line[MB_PATH_MAX];
-    int i;
+    int i, used;
 
     d = opendir("/images");
     if (d == NULL) {
@@ -101,6 +101,7 @@ char *get_disk_ls(cfg_t *cfg) {
     strcpy(listing, "\nSystem flash directory:\n    Length Name\n");
     
     i = 1;
+    used = 0;
     while ((f = readdir(d))) {
 	if (strncmp(".", f->d_name, 1) != 0 && 
 	    strncmp("..", f->d_name, 2) != 0 &&
@@ -116,6 +117,7 @@ char *get_disk_ls(cfg_t *cfg) {
 		return NULL;
 	    }
 	    sprintf(line, "%10d %s\n", (int)s.st_size, f->d_name);
+	    used += (int)s.st_size;
 	    strncat(listing, line, strlen(line));
 	}
     }
@@ -126,10 +128,10 @@ char *get_disk_ls(cfg_t *cfg) {
 	return NULL;
     }
     listing = (char *)realloc(listing, sizeof(char) * MB_PATH_MAX * ++i);
-    sprintf(line, "[%ld bytes used, %ld available, %ld total]\n\n",
-	    ( sf.f_frsize * (sf.f_blocks - sf.f_bavail)),
-	    ( sf.f_frsize * sf.f_bavail ),
-	    ( sf.f_frsize * sf.f_blocks ));
+    sprintf(line, "[%d bytes used, %ld available, %ld total]\n\n",
+	    ( used ),
+	    ( sf.f_bavail ),
+	    ( sf.f_blocks ));
     strncat(listing, line, strlen(line));
     
     if (listing == NULL) {
@@ -209,6 +211,8 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     char image_file[MB_PATH_MAX];
     char image_path[MB_PATH_MAX];
     struct stat sbuf;
+    char *console;
+    char kexec_cmdline[MB_CMDLINE_MAX];
   
     /* if the user said "boot <something>" then check that tag exists,
        then boot it, else default tag */
@@ -260,8 +264,13 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
 	MB_DEBUG("[mb] mount /proc failed - already mounted?\n");
     }
 
+    /* find out what console we're currently using, assume that it'll
+       do for the new kernel too */
+    console = get_kernel_console();
+    sprintf(kexec_cmdline, "--command-line=%s", console);
+    
     /* fork/exec the kexec -l first */
-    if (do_exec(KEXEC_BINARY, "kexec", "-l", image_path, 0) != 0) {
+    if (do_exec(KEXEC_BINARY, "kexec", kexec_cmdline, "-l", image_path, 0) != 0) {
 	return -1;
     }
 

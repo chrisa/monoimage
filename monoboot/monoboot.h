@@ -8,6 +8,7 @@
 #define MB_PROMPT_MAX   32
 #define MB_NETWORK_MAX  16
 #define MB_PATH_MAX     200
+#define MB_CMDLINE_MAX  255
 
 /* paths */
 
@@ -81,3 +82,5 @@ int cmd_conf(cfg_t *, char **);
 int cmd_exit(cfg_t *, char **);
 int cmd_write(cfg_t *, char **);
 
+/* util functions */
+char *get_kernel_console(void);
