@@ -78,7 +78,7 @@ int parse_cmdline(char *imagefile, char *configdev)
 	    while ( strncmp(cmdline_end, " ", 1) != 0 && strncmp(cmdline_end, "\n", 1) != 0) {
 		cmdline_end++;
 	    }
-	    strncpy(imagefile, "/images", 9);
+	    strncpy(imagefile, "/images/", 9);
 	    strncat(imagefile, cmdline_start, (cmdline_end - cmdline_start));
 	}
 	
