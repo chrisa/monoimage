@@ -374,7 +374,7 @@ void cmd_write(cfg_t *cfg, char **cmdline) {
     }
 
     config = get_running_config(cfg);
-    fprintf(fp, "config saved by monoboot at %s\n\n", timestr);
+    fprintf(fp, "# config saved by monoboot at %s\n\n", timestr);
     fputs(config, fp);
     fclose(fp);
     
