@@ -1,0 +1,44 @@
+# make file pinched from utils/ in the klibc distribution
+# tested with klibc-0.152 set the SRCROOT enviroment var to
+# klibc source root.
+
+#SRCROOT  = /home/murble/src/klibc-0.152/
+include $(SRCROOT)MCONFIG
+include $(SRCROOT)MRULES
+
+MAKEDEPS     = -Wp,-MD,.$(subst /,-,$*).d
+CFLAGS       = $(MAKEDEPS) $(OPTFLAGS) $(REQFLAGS) -W -Wall
+LIBS         = $(KLIBC) $(LIBGCC)
+PROGS       := linuxrc
+STATICPROGS := $(patsubst %,static/%,$(PROGS))
+SHAREDPROGS := $(patsubst %,shared/%,$(PROGS))
+
+all:	$(STATICPROGS) $(SHAREDPROGS)
+
+static/%: %.o $(CRT0) $(LIBS)
+	mkdir -p static static.g
+	$(LD) $(LDFLAGS) -o $@ $(CRT0) $< $(LIBS)
+	cp -f $@ static.g
+	$(STRIP) $@
+
+shared/%: %.o $(CRTSHARED) $(LIBSHARED)
+	mkdir -p shared shared.g
+	$(LD) $(LDFLAGS) -o $@ $(EMAIN) $(CRTSHARED) $< \
+		-R $(LIBSHARED) $(LIBGCC)
+	cp -f $@ shared.g
+	$(STRIP) $@
+
+
+$(CRT0) $(LIBS):
+	@echo '*** error: $@ not up to date' || exit 1
+
+clean:
+	$(RM) *.o core $(LIBUTILS) $(PROGS) .*.d
+	$(RM) -rf static static.g shared shared.g
+
+spotless: clean
+	$(RM) *~
+
+ifneq ($(wildcard .*.d),)
+include $(wildcard .*.d)
+endif
