@@ -1,6 +1,7 @@
 #define C99_SOURCE
 #include <stdlib.h>
 #include <errno.h>
+#include <stdio.h>
 #include <readline/readline.h>
 #include <readline/history.h>
 #include <confuse.h>
