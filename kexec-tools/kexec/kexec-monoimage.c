@@ -15,10 +15,10 @@
 #include <boot/elf_boot.h>
 #include <ip_checksum.h>
 #include <x86/x86-linux.h>
+
+#include <monoimage.h>
 #include "kexec.h"
 #include "kexec-x86.h"
-
-#include "monoimage.h"
 
 int monoimage_probe(FILE *file)
 {

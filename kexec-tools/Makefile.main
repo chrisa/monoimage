@@ -1,7 +1,7 @@
 # Hey Emacs this is a -*- makefile-*-
 VERSION="1.8"
 DATE="01 December 2002"
-CPPFLAGS:= -I./util_lib/include -DVERSION='$(VERSION)' -DRELEASE_DATE='$(DATE)'
+CPPFLAGS:= -I../include -I./util_lib/include -DVERSION='$(VERSION)' -DRELEASE_DATE='$(DATE)'
 CFLAGS:=-Wall -g -O2 -fno-strict-aliasing $(CPPFLAGS)
 
 PREFIX:=$(OBJDIR)/build
