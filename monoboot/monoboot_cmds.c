@@ -10,6 +10,8 @@
 #include "monoboot.h"
 #include "monoboot_cmds.h"
 
+/* $Id$ */
+
 void cmd_boot(cfg_t *cfg, char **cmdline) {
     
     pid_t pid, status;
@@ -106,7 +108,7 @@ void cmd_show(cfg_t *cfg, char **cmdline) {
     } else {
 	if (strncmp(cmdline[1], "r", 1) == 0) {
 	    /* show run */
-	    printf("running-config:\n");
+	    printf("\n");
 	    printf("version %ld\n",  cfg_getint(cfg,"version"));
 	    printf("bootonce %s\n", cfg_getstr(cfg,"bootonce"));
 	    printf("fallback %s\n", cfg_getstr(cfg,"fallback"));

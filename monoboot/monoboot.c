@@ -37,6 +37,8 @@
 
 /* global pointer for lines read with readline */
 char *line_read = (char *)NULL;
+/* the current prompt */
+char mb_prompt[MB_PROMPT_MAX];
 
 int main(int argc, char **argv) {
     cfg_t *cfg;
@@ -158,7 +160,7 @@ char *rl_gets () {
     }
     
     /* Get a line from the user. */
-    line_read = readline ("mb> ");
+    line_read = readline (mb_prompt);
     
     /* If the line has any text in it,
        save it on the history. */
@@ -166,6 +168,14 @@ char *rl_gets () {
 	add_history (line_read);
     
     return (line_read);
+}
+
+/*
+ * set the mbsh prompt
+ */
+
+void set_mb_prompt (char *prompt) {
+    strncpy(mb_prompt, prompt, strlen(prompt));
 }
 
 /* 
@@ -176,6 +186,7 @@ char *rl_gets () {
 
 void init_readline (void) {
     rl_bind_key ('\t', rl_insert);
+    set_mb_prompt("mb> ");
 }
 
 /* 
@@ -189,26 +200,27 @@ void mb_interact(cfg_t *cfg) {
     while ( (line_read = rl_gets()) != NULL) {
 	cmdline = split_cmdline(line_read);
 
-	/* == BOOT == */
-	if ( strncmp(cmdline[0], "boot", 4) == 0 ) {
-	    cmd_boot(cfg, cmdline);
-	}
+	if (cmdline) {
+	    /* == BOOT == */
+	    if ( strncmp(cmdline[0], "boot", 4) == 0 ) {
+		cmd_boot(cfg, cmdline);
+	    }
 
-	/* == SHOW == */
-	if ( strncmp(cmdline[0], "show", 4) == 0 ) {
-	    cmd_show(cfg, cmdline);
-	}
+	    /* == SHOW == */
+	    if ( strncmp(cmdline[0], "show", 4) == 0 ) {
+		cmd_show(cfg, cmdline);
+	    }
 
-	/* == COPY == */
-	if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
-	    // cmd_copy(cfg, cmdline);
-	}
+	    /* == COPY == */
+	    if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
+		// cmd_copy(cfg, cmdline);
+	    }
 
-	/* == CONF == */
-	if ( strncmp(cmdline[0], "conf", 4) == 0 ) {
-	    // cmd_conf(cfg, cmdline);
+	    /* == CONF == */
+	    if ( strncmp(cmdline[0], "conf", 4) == 0 ) {
+		// cmd_conf(cfg, cmdline);
+	    }
 	}
-
 	cmdline_free(cmdline);
     }
     MB_DEBUG("\n[mb] mb_interact: exiting mb_interact\n");
