@@ -240,12 +240,14 @@ int cmd_show(cfg_t *cfg, char **cmdline) {
 }
 
 int cmd_copy(cfg_t *cfg, char **cmdline) {
-    if (strncmp(cmdline[1], "tftp", 4) == 0 || 
-	strncmp(cmdline[2], "tftp", 4) == 0 ) {
-	if (do_tftp(cfg, cmdline[1], cmdline[2]) == 0) {
-	    printf("[ok]\n");
-	} else {
-	    printf("[fail]\n");
+    if (cmdline[1] && cmdline[2]) {
+	if (strncmp(cmdline[1], "tftp", 4) == 0 || 
+	    strncmp(cmdline[2], "tftp", 4) == 0 ) {
+	    if (do_tftp(cfg, cmdline[1], cmdline[2]) == 0) {
+		printf("[ok]\n");
+	    } else {
+		printf("[fail]\n");
+	    }
 	}
     }
     return 0;
