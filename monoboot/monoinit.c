@@ -178,7 +178,7 @@ int main (void)
     }
 
     /* clone cpath's contents into /etc */
-    sprintf(rsync_cmd, "%s -rt %s/etc /etc", RSYNC_BINARY, cpath);
+    sprintf(rsync_cmd, "%s -rt %s/etc/ /etc/", RSYNC_BINARY, cpath);
     MB_DEBUG("[mb] will system cmdline: %s\n", rsync_cmd);
     system(rsync_cmd);
 
