@@ -181,8 +181,8 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	/* figure out what the path to the image will be when we mount the images device on /images */
 	
 	/* read /etc/mtab to find the mount point of images_dev */
-	if ( (mtab = fopen("/etc/mtab", "r")) < 0 ) {
-		fprintf(stderr, "/etc/mtab: open: %s\n",
+	if ( (mtab = fopen("/proc/mounts", "r")) < 0 ) {
+		fprintf(stderr, "/proc/mounts: open: %s\n",
 			strerror(errno));
 		return -1;
 	}

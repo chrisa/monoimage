@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -141,10 +142,12 @@ char *get_running_config(cfg_t *cfg) {
     return strdup(config);
 }
 
-void cmd_boot(cfg_t *cfg, char **cmdline) {
+int cmd_boot(cfg_t *cfg, char **cmdline) {
     int n, images;
     char *image_tag;
-    char image_file[256];
+    char image_file[MB_PATH_MAX];
+    char image_path[MB_PATH_MAX];
+    struct stat sbuf;
   
     /* if the user said "boot <something>" then check that tag exists,
        then boot it, else default tag */
@@ -155,7 +158,7 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 	    image_tag = cmdline[1];
 	} else {
 	    printf("no such tag %s\n", cmdline[1]);
-	    return;
+	    return -1;
 	}
     } else {
 	image_tag = cfg_getstr(cfg, "bootimage");
@@ -183,16 +186,22 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 	}
     }
 
-    MB_DEBUG("[mb] image_file: %s\n", image_file);
+    /* check the filename we're being asked to boot is there. */
+    sprintf(image_path, "%s/%s", MB_PATH_IMAGES, image_file);
+    if (stat(image_path, &sbuf) < 0) {
+	MB_DEBUG("[mb] cmd_boot: couldn't stat %s: %s", image_path, strerror(errno));
+	return -1;
+    }
+    MB_DEBUG("[mb] image path: %s\n", image_path);
 
     /* get /proc mounted for kexec's benefit */
     if (do_exec(MOUNT_BINARY, "mount", "-t", "proc", "proc", "/proc", 0) != 0) {
-	return;
+	MB_DEBUG("[mb] mount /proc failed - already mounted?\n");
     }
 
     /* fork/exec the kexec -l first */
-    if (do_exec(KEXEC_BINARY, "kexec", "-l", image_file, 0) != 0) {
-	return;
+    if (do_exec(KEXEC_BINARY, "kexec", "-l", image_path, 0) != 0) {
+	return -1;
     }
 
     /* drop the confuse config stuff now, 'cos we're fairly sure this
@@ -204,14 +213,14 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 
     /* can't happen; we're off booting the new kernel (right?) */
     MB_DEBUG("[mb] boot_image: we're still here. exec of %s failed: %s\n", KEXEC_BINARY, strerror(errno));
-    return;
+    return -1;
 }
 
-void cmd_show(cfg_t *cfg, char **cmdline) {
+int cmd_show(cfg_t *cfg, char **cmdline) {
     char *p;
 
     if (cmdline[1] == NULL) {
-	return;
+	return -1;
     } else {
 	if (strncmp(cmdline[1], "r", 1) == 0) {
 	    /* show run */
@@ -226,9 +235,10 @@ void cmd_show(cfg_t *cfg, char **cmdline) {
 	}
 	printf("%s", p);
     }
+    return 0;
 }
 
-void cmd_copy(cfg_t *cfg, char **cmdline) {
+int cmd_copy(cfg_t *cfg, char **cmdline) {
     if (strncmp(cmdline[1], "tftp", 4) == 0 || 
 	strncmp(cmdline[2], "tftp", 4) == 0 ) {
 	if (do_tftp(cfg, cmdline[1], cmdline[2]) == 0) {
@@ -237,9 +247,10 @@ void cmd_copy(cfg_t *cfg, char **cmdline) {
 	    printf("[fail]\n");
 	}
     }
+    return 0;
 }
 
-void cmd_exit(cfg_t *cfg, char **cmdline) {
+int cmd_exit(cfg_t *cfg, char **cmdline) {
     if (get_mb_mode() == MB_MODE_CONF) {
 	set_mb_mode(MB_MODE_EXEC);
 	set_mb_prompt("mb> ");
@@ -255,9 +266,10 @@ void cmd_exit(cfg_t *cfg, char **cmdline) {
     } else {
 	/* not sure what mode we're in then */
     }
+    return 0;
 }
 
-void cmd_conf(cfg_t *cfg, char **cmdline) {
+int cmd_conf(cfg_t *cfg, char **cmdline) {
     char prompt[MB_PROMPT_MAX];
     char section_name[MB_PROMPT_MAX];
     char *current_section;
@@ -442,9 +454,10 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
 	    }
 	}
     }    
+    return 0;
 }
 
-void cmd_write(cfg_t *cfg, char **cmdline) {
+int cmd_write(cfg_t *cfg, char **cmdline) {
     FILE *fp = fopen(MB_CONF_NEW, "w");
     char *config;
     char timestr[MB_TIMESTR_MAX];
@@ -453,7 +466,7 @@ void cmd_write(cfg_t *cfg, char **cmdline) {
     MB_DEBUG("[mb] cmd_write: writing config to %s\n", MB_CONF_NEW);
     if (!fp) {
 	MB_DEBUG("[mb] cmd_write: open failed: %s\n", strerror(errno));
-	return;
+	return -1;
     }
     
     t = time(NULL);
@@ -475,4 +488,5 @@ void cmd_write(cfg_t *cfg, char **cmdline) {
     if (rename(MB_CONF_NEW, MB_CONF)) {
 	MB_DEBUG("[mb] cmd_write: rename failed: %s\n", strerror(errno));
     }
+    return 0;
 }

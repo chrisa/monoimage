@@ -116,8 +116,9 @@ int do_netconf(cfg_t *cfg) {
     /*
      * this will do:
      * 
-     * ip address del dev %s
+     * ip address flush dev %s
      * ip address add %s dev %s
+     * ip link set %s up
      * ip route del default
      * ip route add default via %s
      * 
@@ -130,8 +131,9 @@ int do_netconf(cfg_t *cfg) {
 	addr = cfg_getstr(network, "address");
 	gw = cfg_getstr(network, "gateway");
 	
-	ret += do_exec(IP_BINARY, "ip", "address", "del", "dev", iface, 0);
+	ret += do_exec(IP_BINARY, "ip", "address", "flush", "dev", iface, 0);
 	ret += do_exec(IP_BINARY, "ip", "address", "add", addr, "dev", iface, 0);
+	ret += do_exec(IP_BINARY, "ip", "link", "set", "eth0", "up", 0);
 	ret += do_exec(IP_BINARY, "ip", "route", "del", "default", 0);
 	ret += do_exec(IP_BINARY, "ip", "route", "add", "default", "via", gw, 0);
     }

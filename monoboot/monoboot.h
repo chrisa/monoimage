@@ -7,8 +7,14 @@
 #define MB_TIMESTR_MAX  200
 #define MB_PROMPT_MAX   32
 #define MB_NETWORK_MAX  16
+#define MB_PATH_MAX     200
 
-/* config file locations */
+/* paths */
+
+#define MB_PATH_CONFIG  "/config"
+#define MB_PATH_IMAGES  "/images"
+
+/* config file names */
 
 #define MB_CONF		"mb.conf"
 #define MB_CONF_NEW	"mb.conf.new"
@@ -59,10 +65,10 @@ void set_mb_prompt(char *);
 
 /* command functions */
 
-void cmd_boot(cfg_t *, char **);
-void cmd_show(cfg_t *, char **);
-void cmd_copy(cfg_t *, char **);
-void cmd_conf(cfg_t *, char **);
-void cmd_exit(cfg_t *, char **);
-void cmd_write(cfg_t *, char **);
+int cmd_boot(cfg_t *, char **);
+int cmd_show(cfg_t *, char **);
+int cmd_copy(cfg_t *, char **);
+int cmd_conf(cfg_t *, char **);
+int cmd_exit(cfg_t *, char **);
+int cmd_write(cfg_t *, char **);
 

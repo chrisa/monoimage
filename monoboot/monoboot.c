@@ -34,6 +34,7 @@
 int main(int argc, char **argv) {
     cfg_t *cfg;
     int interact = 1;
+    char conf_path[MB_PATH_MAX];
 
     if (!strncmp(basename(argv[0]),"mbsh",4)) {
 	MB_DEBUG("[mb] running as mbsh\n");
@@ -47,7 +48,14 @@ int main(int argc, char **argv) {
 	interact = 1;
     }
 
-    cfg = load_config(MB_CONF);
+    /* get /proc mounted for kexec's benefit */
+    if (do_exec(MOUNT_BINARY, "mount", "-a", 0) != 0) {
+	MB_DEBUG("[mb] mount -a failed\n");
+    }
+
+    sprintf(conf_path, "%s/%s", MB_PATH_CONFIG, MB_CONF);
+    MB_DEBUG("[mb] main: conf file is %s\n", conf_path);
+    cfg = load_config(conf_path);
     check_last(cfg);
 
     if (interact == 1) {
@@ -95,7 +103,7 @@ cfg_t* load_config(char *file) {
     };
 
     cfg = cfg_init(opts, CFGF_NOCASE);
-    ret = cfg_parse(cfg, MB_CONF);
+    ret = cfg_parse(cfg, file);
     if (ret == CFG_FILE_ERROR) {
 	perror(MB_CONF);
 	exit(1);

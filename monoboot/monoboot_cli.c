@@ -132,6 +132,7 @@ void init_readline (void) {
  */
 void mb_interact(cfg_t *cfg) {
     char **cmdline;
+    int ret;
     init_readline();
 
     while ( (line_read = rl_gets()) != NULL) {
@@ -141,7 +142,7 @@ void mb_interact(cfg_t *cfg) {
 
 	    /* == EXIT == */
 	    if ( strncmp(cmdline[0], "exit", 4) == 0 ) {
-		cmd_exit(cfg, cmdline);
+		ret = cmd_exit(cfg, cmdline);
 	    }
 
 	    if (get_mb_mode() == MB_MODE_CONF || 
@@ -149,33 +150,33 @@ void mb_interact(cfg_t *cfg) {
 		get_mb_mode() == MB_MODE_CONF_NET ) {
 
 		/* hand all conf mode commands to cmd_conf */
-		cmd_conf(cfg, cmdline);
+		ret = cmd_conf(cfg, cmdline);
 
 	    } else if (get_mb_mode() == MB_MODE_EXEC) {
 	  
 		/* == BOOT == */
 		if ( strncmp(cmdline[0], "boot", 4) == 0 ) {
-		    cmd_boot(cfg, cmdline);
+		    ret = cmd_boot(cfg, cmdline);
 		}
 
 		/* == SHOW == */
 		if ( strncmp(cmdline[0], "show", 4) == 0 ) {
-		    cmd_show(cfg, cmdline);
+		    ret = cmd_show(cfg, cmdline);
 		}
 
 		/* == COPY == */
 		if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
-		    cmd_copy(cfg, cmdline);
+		    ret = cmd_copy(cfg, cmdline);
 		}
 
 		/* == CONF == */
 		if ( strncmp(cmdline[0], "conf", 4) == 0 ) {
-		    cmd_conf(cfg, cmdline);
+		    ret = cmd_conf(cfg, cmdline);
 		}
 
 		/* == WRITE == */
 		if ( strncmp(cmdline[0], "write", 5) == 0 ) {
-		    cmd_write(cfg, cmdline);
+		    ret = cmd_write(cfg, cmdline);
 		}
 
 	    } else {
