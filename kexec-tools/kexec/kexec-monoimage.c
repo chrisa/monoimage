@@ -178,9 +178,14 @@ int monoimage_load(FILE *file, int argc, char **argv,
 		strncpy(buf, "/dev/", 6);
 		strncat(buf, dev->d_name, strlen(dev->d_name));
 		if (stat(buf, &devbuf) < 0) {
-			fprintf(stderr, "stat %s: %s\n", dev->d_name, strerror(errno));
-			closedir(dir);
-			return -1;
+			if (errno != ENOENT) {
+				fprintf(stderr, "stat %s: %s\n", dev->d_name, strerror(errno));
+				closedir(dir);
+				return -1;
+			} else {
+				/* ENOENT isn't fatal */
+				fprintf(stderr, "stat /dev/%s (skipped)\n", dev->d_name);
+			}
 		}
 		if (devbuf.st_rdev == images_buf.st_dev && S_ISBLK(devbuf.st_mode)) {
 			/* this is our images device */
