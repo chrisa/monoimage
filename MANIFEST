@@ -7,7 +7,6 @@
 ./initrd/make-initrd.sh
 ./initrd/be-root.sh
 ./initrd/Makefile
-./initrd/tmp/
 ./kexec-tools/kexec/ifdown.c
 ./kexec-tools/kexec/kexec-bzImage.c
 ./kexec-tools/kexec/kexec-elf32-x86.c
@@ -60,5 +59,4 @@
 ./rootfs/.cvsignore
 ./rootfs/make-rootfs.sh
 ./rootfs/Makefile
-./rootfs/tmp/
 ./utils/makeimage.pl

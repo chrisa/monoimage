@@ -32,4 +32,6 @@ clean:
 	$(MAKE) -C gpio clean
 
 release:
-	tar zcvTf MANIFEST monoimage-tools.tar.gz 
+	mkdir monoimage-tools-$(VERSION)
+	tar cTf MANIFEST - | (cd monoimage-tools-$(VERSION) && tar xvf -)
+	tar zcvf monoimage-tools-$(VERSION).tar.gz monoimage-tools-$(VERSION)
