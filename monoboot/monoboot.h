@@ -44,6 +44,7 @@ void show_config(cfg_t *cfg);
 void drop_config(cfg_t *cfg);
 void save_config(cfg_t *cfg);
 int check_last(cfg_t *cfg);
+int get_keypress(int delay);
 
 /* exec functions */
 

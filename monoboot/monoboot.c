@@ -29,12 +29,16 @@
 #include <getopt.h>
 #include <confuse.h>
 #include <malloc.h>
+#include <signal.h>
+#include <setjmp.h>
+#include <termios.h>
 #include "monoboot.h"
 
 int main(int argc, char **argv) {
     cfg_t *cfg;
     int interact = 1;
     char conf_path[MB_PATH_MAX];
+    int delay = 0;
 
     if (!strncmp(basename(argv[0]),"mbsh",4)) {
 	MB_DEBUG("[mb] running as mbsh\n");
@@ -48,7 +52,7 @@ int main(int argc, char **argv) {
 	interact = 1;
     }
 
-    /* get /proc mounted for kexec's benefit */
+    /* get everything mounted from fstab so we can load config */
     if (do_exec(MOUNT_BINARY, "mount", "-a", 0) != 0) {
 	MB_DEBUG("[mb] mount -a failed\n");
     }
@@ -56,6 +60,14 @@ int main(int argc, char **argv) {
     sprintf(conf_path, "%s/%s", MB_PATH_CONFIG, MB_CONF);
     MB_DEBUG("[mb] main: conf file is %s\n", conf_path);
     cfg = load_config(conf_path);
+
+    
+    /* get the delay from config , wait for keypress if > 0 */
+    delay = cfg_getint(cfg, "delay");
+    if (get_keypress(delay) == 0) {
+	interact = 1;
+    }
+
     check_last(cfg);
 
     if (interact == 1) {
@@ -88,6 +100,7 @@ cfg_t* load_config(char *file) {
 
     static cfg_opt_t opts[] = {
 	CFG_INT("version",    0,            CFGF_NONE),
+	CFG_INT("delay",      0,            CFGF_NONE),
 	CFG_STR("bootonce",   "none",       CFGF_NONE),
 	CFG_STR("tryonce",    "none",       CFGF_NONE),
 	CFG_STR("default",    "none",       CFGF_NONE),
@@ -169,4 +182,63 @@ void drop_config(cfg_t *cfg) {
     cfg_free(cfg);
 }
 
+/* set/unset ICANON flag */
+void set_canonical(int flag) {
+    struct termios term;
+    
+    if (tcgetattr(STDIN_FILENO, &term) < 0) {
+	fprintf(stderr, "unable to tcgetattr: %s\n", strerror(errno));
+    }
+
+    if (flag) {
+	term.c_lflag |= ICANON;
+    } else {
+	term.c_lflag &= ~ICANON;
+    }
+
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
+	fprintf(stderr, "unable to tcsetattr: %s\n", strerror(errno));
+    }
+}
+
+/* get keypress with timeout */
+
+static jmp_buf env_alrm;
+static void sig_alrm(int signo) {
+    longjmp(env_alrm, 1);
+}
   
+int get_keypress (int delay) {
+    int c;
+    
+    if (!delay)
+	return 1;
+
+    set_canonical(0);
+    if (setvbuf(stdin, NULL, _IONBF, 0) < 0) {
+	fprintf(stderr, "unable to setvbuf: %s\n", strerror(errno));
+    }
+    
+    printf("MONOBOOT booting in %ds\npress a key for a shell", delay);
+    while (delay--) {
+	printf(".");
+        if (signal(SIGALRM, sig_alrm) == SIG_ERR) {
+	    fprintf(stderr, "signal: %s\n", strerror(errno));
+	    set_canonical(1);
+	    return(-1);
+	}
+	if (setjmp(env_alrm) == 0) {
+	    alarm(1);
+	    c = getchar();
+	}
+	if (c) {
+	    alarm(0);
+	    printf("\ngot keypress\n");
+	    set_canonical(1);
+	    return(0);
+	}
+    }
+
+    set_canonical(1);
+    return(1);
+}
