@@ -38,7 +38,7 @@ unless (defined $opt{k} && defined $opt{r} && defined $opt{i}) {
     exit 1;
 }
 
-my ($kernel, $ramdisk, $rootfs) = ($opt{k}, $opt{r}, $opt{i});
+my ($kernel, $ramdisk, $rootfs) = ($opt{k}, $opt{i}, $opt{r});
 
 my $kernel_size  = (stat $kernel)[7];
 my $ramdisk_size = (stat $ramdisk)[7];
@@ -60,7 +60,7 @@ if ($version == 1) {
 
     print "BI"; 
     print pack("SSSII", 1,
-	       $format_num,
+	       $format,
 	       BOOTIMAGE_HEADER_SIZE,
 	       (BOOTIMAGE_HEADER_SIZE + $kernel_size),
 	       (BOOTIMAGE_HEADER_SIZE + $kernel_size + $ramdisk_size) );
