@@ -1,0 +1,32 @@
+config partition:
+
+typically /dev/hda2 of a CF card. 
+
+top-level directory contains monoimage.conf (contains preferred image,
+fallback image, etc.), bootlog, and a /files/ directory. the partition
+will be mounted rw on /config in the second world, and config files in
+that filesystem will be symlinks into /config.
+
+/
+/monoimage.conf
+/bootlog
+/files/
+/files/etc/network/interfaces
+/files/etc/...
+...
+
+monoimage.conf:
+
+--
+fallback  funknet-node-soekris-20040601.mi 
+preferred funknet-node-soekris-20040606.mi
+...
+--
+
+bootlog:
+
+--
+boot1  1086533140
+boot2  1086533160
+--
+

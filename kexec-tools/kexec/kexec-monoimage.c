@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <dirent.h>
 
 #include <elf.h>
 #include <boot/elf_boot.h>
@@ -18,8 +19,6 @@
 #include "kexec-x86.h"
 
 #include "monoimage.h"
-
-#define IMAGES_DEV "hda1"
 
 int monoimage_probe(FILE *file)
 {
@@ -85,6 +84,13 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	int opt;
 	struct monoimage_header bi_header;
 	char *image;
+	int file_fd;
+	struct stat imgbuf;
+	struct stat devbuf;
+	DIR *dir;
+	struct dirent *dev;
+	char images_dev[256];
+	char statbuf[256];
 
 #define OPT_APPEND	OPT_MAX+0
 #define OPT_INITRD	OPT_MAX+1
@@ -133,11 +139,43 @@ int monoimage_load(FILE *file, int argc, char **argv,
 		}
 	}
 	image = argv[optind];
-	  
+
+	/*
+	 * work out which device the image file is on
+	 */
+
+	file_fd = fileno(file);
+	if (fstat(file_fd, &imgbuf) < 0) {
+		fprintf(stderr, "stat image: %s\n",
+			strerror(errno));
+		return -1;
+	}
+	dir = opendir("/dev");
+	if (dir == NULL) {
+		fprintf(stderr, "opendir /dev: %s\n",
+			strerror(errno));
+		return -1;
+	}
+	while ( ( dev = readdir(dir) ) ) {
+		strncpy(statbuf, "/dev/", 6);
+		strncat(statbuf, dev->d_name, strlen(dev->d_name));
+		if (stat(statbuf, &devbuf) < 0) {
+			fprintf(stderr, "stat %s: %s\n", dev->d_name, strerror(errno));
+			closedir(dir);
+			return -1;
+		}
+		if (devbuf.st_rdev == imgbuf.st_dev && S_ISBLK(devbuf.st_mode)) {
+			/* this is our device */
+			strncpy(images_dev, dev->d_name, strlen(dev->d_name));
+		}
+	}
+	closedir(dir);
+	fprintf(stderr, "images device: %s\n", images_dev);
+	
 	if (command_line_append) {
-		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s DEV=%s", command_line_append, image, IMAGES_DEV);
+		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s DEV=%s", command_line_append, image, images_dev);
 	} else {
-		sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s DEV=%s", image, IMAGES_DEV);
+		sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s DEV=%s", image, images_dev);
 	}
 		
 	fprintf(stderr, "%s\n", command_line);
@@ -145,7 +183,7 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	if (command_line) {
 		command_line_len = strlen(command_line) +1;
 	}
-
+	
 	/* 
 	 * load the monoimage header from the file
 	 */

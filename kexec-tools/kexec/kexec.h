@@ -1,6 +1,9 @@
 #ifndef KEXEC_H
 #define KEXEC_H
 
+#include <stdint.h>
+#include <x86/x86-linux.h>
+
 struct kexec_segment {
 	void *buf;
 	size_t bufsz;
@@ -26,6 +29,9 @@ int valid_memory_range(struct kexec_segment *segment);
 int sort_segments(struct kexec_segment *segment, int segments);
 int locate_arguments(struct kexec_segment *segment, int segments, 
 	size_t align, unsigned long max);
+
+int setup_linux_parameters(struct x86_linux_param_header *real_mode);
+
 
 struct file_type {
 	const char *name;
