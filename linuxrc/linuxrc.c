@@ -168,12 +168,11 @@ int main (int argc, char **argv)
 	if ( mount("proc", "/proc", "proc", 0, NULL) < 0 ) {
 		fprintf(stderr, "mount /proc: %s\n",
 			strerror(errno));
-		//		die_reboot();
+		die_reboot();
 	}
 
 	/* open /proc/cmdline, read image filename */
-	//	if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
-	if ( (file = fopen("cmdline", "r")) == NULL ) {
+	if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
 		fprintf(stderr, "/proc/cmdline: open: %s\n",
 			strerror(errno));
 		die_reboot();
