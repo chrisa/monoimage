@@ -260,8 +260,10 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     MB_DEBUG("[mb] image path: %s\n", image_path);
 
     /* get /proc mounted for kexec's benefit */
-    if (do_exec(MOUNT_BINARY, "mount", "-t", "proc", "proc", "/proc", 0) != 0) {
-	MB_DEBUG("[mb] mount /proc failed - already mounted?\n");
+    if (check_mounted("/proc") != MB_CM_YES) {
+	if (do_exec(MOUNT_BINARY, "mount", "-t", "proc", "proc", "/proc", 0) != 0) {
+	    MB_DEBUG("[mb] mount /proc failed\n");
+	}
     }
 
     /* find out what console we're currently using, assume that it'll
