@@ -132,8 +132,12 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
     }
 
     MB_DEBUG("[mb] image_tag: %s\n", image_tag);
-
+    
+    /* set lasttry to the image tag we're about to boot, and
+       lastboot to nil, so we'll see if the boot failed */
     cfg_setstr(cfg, "lasttry", image_tag);
+    cfg_setstr(cfg, "lastboot", "nil");
+    save_config(cfg);
 
     /* must call cfg_size again, if we're going to use cfg_getnsec (it
        seems) */
@@ -176,7 +180,6 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 
     /* drop the confuse config stuff now, 'cos we're fairly sure this
        exec will work ok. */
-    save_config(cfg);
     drop_config(cfg);
 
     /* now exec the kexec -e -- hardly worth forking */
@@ -352,5 +355,25 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
 }
 
 void cmd_write(cfg_t *cfg, char **cmdline) {
-    save_config(cfg);
+    FILE *fp = fopen(MB_CONF_NEW, "w");
+    char *config;
+
+    MB_DEBUG("[mb] cmd_write: writing config to %s\n", MB_CONF_NEW);
+    if (!fp) {
+	MB_DEBUG("[mb] cmd_write: open failed: %s\n", strerror(errno));
+	return;
+    }
+    
+    config = get_running_config(cfg);
+    fputs(config, fp);
+    fclose(fp);
+    
+    MB_DEBUG("[mb] cmd_write: preserving old config as %s\n", MB_CONF_OLD);
+    if (rename(MB_CONF, MB_CONF_OLD)) {
+	MB_DEBUG("[mb] cmd_write: rename failed: %s\n", strerror(errno));
+    }
+    MB_DEBUG("[mb] cmd_write: putting new config in place\n");
+    if (rename(MB_CONF_NEW, MB_CONF)) {
+	MB_DEBUG("[mb] cmd_write: rename failed: %s\n", strerror(errno));
+    }
 }

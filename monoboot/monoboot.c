@@ -77,12 +77,12 @@ cfg_t* load_config(char *file) {
 
     static cfg_opt_t opts[] = {
 	CFG_INT("version",    0,      CFGF_NONE),
-	CFG_STR("default",    "none", CFGF_NONE),
 	CFG_STR("bootonce",   "none", CFGF_NONE),
-	CFG_STR("fallback",   "none", CFGF_NONE),
-	CFG_STR("lastboot",   "none", CFGF_NONE),
-	CFG_STR("lasttry",    "none", CFGF_NONE),
 	CFG_STR("tryonce",    "none", CFGF_NONE),
+	CFG_STR("default",    "none", CFGF_NONE),
+	CFG_STR("fallback",   "none", CFGF_NONE),
+	CFG_STR("lasttry",    "none", CFGF_NONE),
+	CFG_STR("lastboot",   "none", CFGF_NONE),
 	CFG_STR("bootimage",  "none", CFGF_NONE),
 	CFG_SEC("image", image_opts, CFGF_MULTI | CFGF_TITLE),
 	CFG_END()
@@ -115,6 +115,7 @@ int check_last(cfg_t *cfg) {
 	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "default")) == 0) {
 	    /* we just tried our default image and it failed. set bootimage to
 	       fallback */
+	    MB_DEBUG("[mb] check_last: switching from default to fallback.\n");
 	    cfg_setstr(cfg, "bootimage", cfg_getstr(cfg, "fallback"));
 	}
 
@@ -122,6 +123,7 @@ int check_last(cfg_t *cfg) {
 	    /* we just tried our fallback image and it failed. yikes.
 	       don't do anything, sit here and wait for someone to
 	       help us out. */
+	    MB_DEBUG("[mb] check_last: fallback failed, panicking.\n");
 
 	    /* XXX */
 	}
@@ -136,6 +138,7 @@ int check_last(cfg_t *cfg) {
 	
 	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "fallback")) == 0) {
 	    cfg_setstr(cfg, "bootimage", cfg_getstr(cfg, "default"));
+	    MB_DEBUG("[mb] check_last: fallback succeeded, switching back to default\n");
 	}
 
 	return 1;
@@ -144,27 +147,7 @@ int check_last(cfg_t *cfg) {
 
 /* write config back to file, with shimmying */
 void save_config(cfg_t *cfg) {
-    FILE *fp = fopen(MB_CONF_NEW, "w");
-
-    MB_DEBUG("[mb] save_config: writing config to %s\n", MB_CONF_NEW);
-    if (!fp) {
-	perror(MB_CONF_NEW); 
-	exit(3);
-    }
-    cfg_print(cfg, fp); /* XXX check this for errors */
-    fclose(fp);
-
-    MB_DEBUG("[mb] save_config: preserving old config as %s\n", MB_CONF_OLD);
-    if (rename(MB_CONF, MB_CONF_OLD)) {
-	perror(MB_CONF_OLD);
-	exit(4);
-    }
-    MB_DEBUG("[mb] save_config: putting new config in place\n");
-    if (rename(MB_CONF_NEW, MB_CONF)) {
-	perror(MB_CONF);
-	exit(5);
-    }
-    return;
+    cmd_write(cfg, NULL);
 }
 
 /* clean up */
