@@ -3,3 +3,8 @@ lemon 20040609
 
 libconfuse comes from http://www.nongnu.org/confuse/
 $ apt-get install libconfuse-dev (apparently)
+
+NB:
+Currently looks for 'kexec' in PATH. Make sure the one it finds is one that
+groks monoimages, or it'll just go 'Not a bzImage' and flail. 
+  -- chris
