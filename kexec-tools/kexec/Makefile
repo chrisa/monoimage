@@ -3,7 +3,7 @@
 #
 KEXEC_C_SRCS:= kexec/kexec.c kexec/kexec-syscall.c 
 KEXEC_S_SRCS:= 
-KEXEC_C_SRCS+= kexec/kexec-x86.c kexec/kexec-elf32-x86.c kexec/kexec-bzImage.c
+KEXEC_C_SRCS+= kexec/kexec-x86.c kexec/kexec-elf32-x86.c kexec/kexec-bzImage.c kexec/kexec-monoimage.c
 KEXEC_C_SRCS+= kexec/ifdown.c
 KEXEC_S_SRCS+= kexec/x86-setup-32.S kexec/x86-setup-16.S kexec/x86-setup-16-debug.S
 KEXEC_C_OBJS:= $(patsubst %.c, $(OBJDIR)/%.o, $(KEXEC_C_SRCS))

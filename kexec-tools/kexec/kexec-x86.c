@@ -74,5 +74,6 @@ int get_memory_ranges(struct memory_range **range, int *ranges)
 struct file_type file_type[] = {
 	{ "elf32-x86", elf32_x86_probe, elf32_x86_load, elf32_x86_usage },
 	{ "bzImage", bzImage_probe, bzImage_load, bzImage_usage },
+	{ "monoimage", monoimage_probe, monoimage_load, monoimage_usage, }
 };
 int file_types = sizeof(file_type)/sizeof(file_type[0]);

@@ -22,7 +22,7 @@
 #define LINUX_REBOOT_CMD_KEXEC		0x45584543
 
 
-#define __NR_kexec_load 259
+#define __NR_kexec_load 283
 _syscall4(int, reboot, int, magic1, int, magic2, int, cmd, void*, arg);
 _syscall4(long, kexec_load, void *, entry, unsigned long, nr_segments, struct kexec_segment *, segments, unsigned long, flags);
 

@@ -49,4 +49,9 @@ int bzImage_load(FILE *file, int argc, char **argv,
 	void **ret_entry, struct kexec_segment **ret_segments, int *ret_nr_segments);
 void bzImage_usage(void);
 
+int monoimage_probe(FILE *file);
+int monoimage_load(FILE *file, int argc, char **argv,
+	void **ret_entry, struct kexec_segment **ret_segments, int *ret_nr_segments);
+void monoimage_usage(void);
+
 #endif /* KEXEC_X86_H */
