@@ -2,9 +2,9 @@
 use strict;
 use Getopt::Std;
 
-use constant BOOTIMAGE_HEADER_SIZE => 16;
+use constant BOOTIMAGE_HEADER_SIZE => 20;
 
-use constant MI_MAGIC => "MI";
+use constant MI_MAGIC => "MIMG";
 use constant MI_HEADER_FORMAT => "SCCIII";
 
 use constant MI_RUNFROM_LOOP  => 0;
