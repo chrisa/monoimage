@@ -189,7 +189,7 @@ static void sig_alrm(int signo) {
 }
   
 int get_keypress (int delay) {
-    int c;
+    int c = 0;
     
     if (!delay)
 	return 1;
