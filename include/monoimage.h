@@ -11,7 +11,7 @@ struct monoimage_header {
 	uint8_t   runfrom;
 	uint8_t   fstype;
 	uint32_t  kernel_offset;
-	uint32_t  initrd_offset;
+	uint32_t  ramdisk_offset;
 	uint32_t  rootfs_offset;
 } __packed__ ;
 
