@@ -13,10 +13,30 @@
 
 /* $Id$ */
 
+int check_image_tag(cfg_t *cfg, char *tag) { 
+    int n, m;
+    int images;
+
+    images = cfg_size(cfg, "image");
+    m = 0;
+    for (n = 0; n < images; n++) {
+	cfg_t *image = cfg_getnsec(cfg, "image", n);
+	if (strncmp(cfg_title(image), tag, strlen(cfg_title(image))) == 0) {
+	    m++;
+	}
+    }
+    if (m) {
+	return 1;
+    } else {
+	return 0;
+    }
+}
+   
+
 void cmd_boot(cfg_t *cfg, char **cmdline) {
     
     pid_t pid, status;
-    int n,m,images;
+    int n, images;
     char *image_tag;
     char image_file[256];
   
@@ -25,15 +45,7 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 
     if (cmdline != NULL && cmdline[1] != NULL) {
 	/* check */
-	images = cfg_size(cfg, "image");
-	m = 0;
-	for (n = 0; n < images; n++) {
-	    cfg_t *image = cfg_getnsec(cfg, "image", n);
-	    if (strncmp(cfg_title(image), cmdline[1], strlen(cmdline[1])) == 0) {
-		m++;
-	    }
-	}
-	if (m > 0) {
+	if (check_image_tag(cfg, cmdline[1])) {
 	    image_tag = cmdline[1];
 	} else {
 	    printf("no such tag %s\n", cmdline[1]);
@@ -138,17 +150,94 @@ void cmd_copy(cfg_t *cfg, char **cmdline) {
 void cmd_exit(cfg_t *cfg, char **cmdline) {
     if (get_mb_mode() == MB_MODE_CONF) {
 	set_mb_mode(MB_MODE_EXEC);
-	//update_config(cfg);
 	set_mb_prompt("mb> ");
     } else if (get_mb_mode() == MB_MODE_EXEC) {
-	//do_exit();
 	MB_DEBUG("would exit here, with cleanup\n");
+    } else if (get_mb_mode() == MB_MODE_CONF_IMAGE) {
+	set_mb_mode(MB_MODE_CONF);
+	set_mb_prompt("conf> ");
     } else {
 	/* not sure what mode we're in then */
     }
 }
 
 void cmd_conf(cfg_t *cfg, char **cmdline) {
-    set_mb_prompt("conf> ");
-    set_mb_mode(MB_MODE_CONF);
+    char prompt[MB_PROMPT_MAX];
+    char image_name[MB_PROMPT_MAX];
+    char *current_image;
+    cfg_t *image;
+    int images, n;
+
+    if (get_mb_mode() == MB_MODE_EXEC) {
+	/* set config mode */
+	set_mb_prompt("conf> ");
+	set_mb_mode(MB_MODE_CONF);
+    } else if (get_mb_mode() == MB_MODE_CONF) {
+
+	/* actually process config commands */
+	if (cmdline[0]) {
+	    
+	    if (strncmp(cmdline[0], "bootonce", 8) == 0) {
+		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
+		    cfg_setstr(cfg, "bootonce", cmdline[1]);
+		    printf("%s -> %s [ok]\n", "bootonce", cmdline[1]);
+		} else {
+		    printf("no such tag %s\n", cmdline[1]);
+		}
+	    }
+
+	    if (strncmp(cmdline[0], "default", 7) == 0) {
+		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
+		    cfg_setstr(cfg, "default", cmdline[1]);
+		    printf("%s -> %s [ok]\n", "default", cmdline[1]);
+		} else {
+		    printf("no such tag %s\n", cmdline[1]);
+		}
+		
+	    }
+
+	    if (strncmp(cmdline[0], "fallback", 8) == 0) {
+		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
+		    cfg_setstr(cfg, "fallback", cmdline[1]);
+		    printf("%s -> %s [ok]\n", "fallback", cmdline[1]);
+		} else {
+		    printf("no such tag %s\n", cmdline[1]);
+		}
+	    }
+
+	    if (strncmp(cmdline[0], "image", 5) == 0) {
+		if (cmdline[1]) {
+		    /* set image config mode */
+
+		    /* truncate image name */
+		    strncpy(image_name, cmdline[1], MB_PROMPT_MAX - 7);
+		    if (strlen(cmdline[1]) < (MB_PROMPT_MAX - 7)) {
+			image_name[strlen(cmdline[1])] = '\0';
+		    } else {
+			image_name[(MB_PROMPT_MAX - 7)] = '\0';
+		    }
+		    /* set the prompt to include the image name */
+		    sprintf(prompt, "conf-%s> ", image_name);
+		    set_mb_prompt(prompt);
+		    set_mb_mode(MB_MODE_CONF_IMAGE);
+		    set_mb_image(image_name);
+		}
+	    }
+	}
+    } else if (get_mb_mode() == MB_MODE_CONF_IMAGE) {
+        current_image = get_mb_image();
+	if (strncmp(cmdline[0], "filename", 8) == 0) {
+	    if (cmdline[1]) {
+		MB_DEBUG("updating filename to %s for image %s\n", cmdline[1], current_image);
+		images = cfg_size(cfg, "image");
+		for (n = 0; n < images; n++) {
+		    image = cfg_getnsec(cfg, "image", n);
+		    if (strncmp(cfg_title(image), current_image, strlen(cfg_title(image))) == 0) {
+			cfg_setstr(image, "filename", cmdline[1]);
+		    }
+		}
+		printf("%s -> %s [ok]\n", "filename", cmdline[1]);
+	    }
+	}
+    }    
 }

@@ -4,6 +4,8 @@
 #define MB_CONF_NEW	"mb.conf.new"
 #define MB_CONF_OLD	"mb.conf.old"
 
+#define MB_IMAGE_MAX    32
+
 #define MB_DEBUG(...) fprintf(stderr, __VA_ARGS__)
 
 cfg_t* load_config(char* file);

@@ -17,6 +17,8 @@ char *line_read = (char *)NULL;
 char mb_prompt[MB_PROMPT_MAX];
 /* the current mode */
 int mb_mode;
+/* the current image being edited */
+char *mb_image;
 
 /* tokenise a command line, return a null terminated list
    of char *s */
@@ -136,29 +138,41 @@ void mb_interact(cfg_t *cfg) {
 	cmdline = split_cmdline(line_read);
 
 	if (cmdline) {
-	    /* == BOOT == */
-	    if ( strncmp(cmdline[0], "boot", 4) == 0 ) {
-		cmd_boot(cfg, cmdline);
-	    }
-
-	    /* == SHOW == */
-	    if ( strncmp(cmdline[0], "show", 4) == 0 ) {
-		cmd_show(cfg, cmdline);
-	    }
-
-	    /* == COPY == */
-	    if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
-		// cmd_copy(cfg, cmdline);
-	    }
-
-	    /* == CONF == */
-	    if ( strncmp(cmdline[0], "conf", 4) == 0 ) {
-		cmd_conf(cfg, cmdline);
-	    }
 
 	    /* == EXIT == */
 	    if ( strncmp(cmdline[0], "exit", 4) == 0 ) {
 		cmd_exit(cfg, cmdline);
+	    }
+
+	    if (get_mb_mode() == MB_MODE_CONF || get_mb_mode() == MB_MODE_CONF_IMAGE) {
+
+		/* hand all conf mode commands to cmd_conf */
+		cmd_conf(cfg, cmdline);
+
+	    } else if (get_mb_mode() == MB_MODE_EXEC) {
+	  
+		/* == BOOT == */
+		if ( strncmp(cmdline[0], "boot", 4) == 0 ) {
+		    cmd_boot(cfg, cmdline);
+		}
+
+		/* == SHOW == */
+		if ( strncmp(cmdline[0], "show", 4) == 0 ) {
+		    cmd_show(cfg, cmdline);
+		}
+
+		/* == COPY == */
+		if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
+		    // cmd_copy(cfg, cmdline);
+		}
+
+		/* == CONF == */
+		if ( strncmp(cmdline[0], "conf", 4) == 0 ) {
+		    cmd_conf(cfg, cmdline);
+		}
+
+	    } else {
+		/* unknown mode */
 	    }
 	}
 	cmdline_free(cmdline);
@@ -173,4 +187,14 @@ void set_mb_mode(int mode) {
 }
 int get_mb_mode(void) {
     return mb_mode;
+}
+
+/* cli current-image get/set */
+void set_mb_image(char *image) {
+    if (mb_image == NULL)
+	mb_image = (char *)malloc(sizeof(char) * MB_IMAGE_MAX);
+    strncpy(mb_image, image, strlen(image));
+}
+char *get_mb_image(void) {
+    return mb_image;
 }
