@@ -167,7 +167,7 @@ void mb_interact(cfg_t *cfg) {
 
 		/* == COPY == */
 		if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
-		    // cmd_copy(cfg, cmdline);
+		    cmd_copy(cfg, cmdline);
 		}
 
 		/* == CONF == */

@@ -12,6 +12,7 @@
 #include "monoboot.h"
 #include "monoboot_cmds.h"
 #include "monoboot_cli.h"
+#include "monoboot_exec.h"
 
 /* $Id$ */
 
@@ -79,6 +80,17 @@ int check_image_tag(cfg_t *cfg, char *tag) {
     } else {
 	return 0;
     }
+}
+
+char *get_startup_config(cfg_t *cfg) {
+    char config[MB_CONFIG_MAX];
+    char buf[MB_CONFIG_MAX];
+    FILE *fp = fopen(MB_CONF, "r");
+    while(fgets(buf, MB_CONFIG_MAX, fp) != NULL) {
+	strncat(config, buf, strlen(buf));
+    }
+    fclose(fp);
+    return strdup(config);
 }
 
 char *get_running_config(cfg_t *cfg) {
@@ -186,7 +198,7 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 	return;
     } else if (pid == 0) {
 	MB_DEBUG("[mb] boot_image: booting image file %s\n", image_file);
-	if (execlp("KEXEC_BINARY", "kexec", "-l", image_file, (char *) 0) < 0) {
+	if (execlp(KEXEC_BINARY, "kexec", "-l", image_file, (char *) 0) < 0) {
 	    MB_DEBUG("[mb] boot_image: exec of %s failed: %s\n", KEXEC_BINARY, strerror(errno));
 	    exit(1);
 	}
@@ -219,9 +231,9 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
     return;
 }
 
-
 void cmd_show(cfg_t *cfg, char **cmdline) {
     char *config;
+
     /* we expect either 'show running-config' or 'show startup-config' */
     if (cmdline[1] == NULL) {
 	return;
@@ -229,16 +241,24 @@ void cmd_show(cfg_t *cfg, char **cmdline) {
 	if (strncmp(cmdline[1], "r", 1) == 0) {
 	    /* show run */
 	    config = get_running_config(cfg);
-	    printf("%s", config);
 	}
 	if (strncmp(cmdline[1], "s", 1) == 0) {
 	    /* show start */
-
+	    config = get_startup_config(cfg);
 	}
+	printf("%s", config);
     }
 }
 
 void cmd_copy(cfg_t *cfg, char **cmdline) {
+    if (strncmp(cmdline[1], "tftp", 4) == 0 || 
+	strncmp(cmdline[2], "tftp", 4) == 0 ) {
+	if (do_tftp(cfg, cmdline[1], cmdline[2]) == 0) {
+	    printf("[ok]\n");
+	} else {
+	    printf("[fail]\n");
+	}
+    }
 }
 
 void cmd_exit(cfg_t *cfg, char **cmdline) {
