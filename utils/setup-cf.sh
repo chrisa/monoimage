@@ -77,15 +77,15 @@ _usage()
 _format()
 {
     echo making new filesystems
-    mke2fs /dev/hda1 >/dev/null 2>&1
-    mke2fs /dev/hda2 >/dev/null 2>&1
-    mke2fs /dev/hda3 >/dev/null 2>&1
+    mke2fs -j /dev/hda1 >/dev/null 2>&1
+    mke2fs -j /dev/hda2 >/dev/null 2>&1
+    mke2fs -j /dev/hda3 >/dev/null 2>&1
 }
 
 _mount_mnt()
 {
-    echo mounting ext2 $1 at /mnt
-    mount -t ext2 $1 /mnt
+    echo mounting ext3 $1 at /mnt
+    mount -t ext3 $1 /mnt
 }
 
 _umount_mnt()
@@ -107,6 +107,15 @@ _copy_fs()
     tftp -g -r $1 -l /var/tmp/$1 ${SERVER}
     cd /mnt
     busybox tar zxf /var/tmp/$1
+    cd /
+}
+
+_unpack_skel()
+{
+    echo unpacking $1 onto /mnt
+    cd /mnt
+    busybox tar zxf $1
+    chown -R root:root *
     cd /
 }
 
@@ -161,6 +170,10 @@ _mount_mnt "/dev/hda1"
 _copy_fs ${ROOTFS_TGZ}
 _copy_grub
 _copy_kernel ${KERNEL}
+_umount_mnt
+
+_mount_mnt "/dev/hda2"
+_unpack_skel "/etc/config-skel.tar.gz"
 _umount_mnt
 
 _mount_mnt "/dev/hda1"
