@@ -111,7 +111,7 @@ int set_loop(const char *device, const char *file, int offset)
 
 void die_reboot (void)
 {
-	sleep(3);
+	sleep(12);
 	fprintf(stderr, "rebooting...");
 	if (reboot(RB_AUTOBOOT) != 0 ) {
 		fprintf(stderr, "reboot failed: %s\n", 
@@ -133,9 +133,10 @@ void die_halt (void)
 int main (int argc, char **argv)
 {
 	FILE *file;
-	char *image;
-	char *image_ptr;
+	char *cmdline;
+	char *cmdline_ptr;
 	char *imagefile;
+	char *imagedev;
 	int offset;
 	struct monoimage_header bi_header;
 	struct stat s;
@@ -143,8 +144,9 @@ int main (int argc, char **argv)
 	fprintf(stderr, "monoimage linuxrc starting...\n");
 
 	/* buffers */
-	image     = (char *)malloc(256 * sizeof(char));
+	cmdline   = (char *)malloc(256 * sizeof(char));
 	imagefile = (char *)malloc(256 * sizeof(char));
+	imagedev  = (char *)malloc(256 * sizeof(char));
 
 	/* mount proc */
 	if ( mount("proc", "/proc", "proc", 0, NULL) < 0 ) {
@@ -159,31 +161,47 @@ int main (int argc, char **argv)
 			strerror(errno));
 		die_reboot();
 	}
-	if ( fgets(image, 256, file) == NULL ) {
+	if ( fgets(cmdline, 256, file) == NULL ) {
 		fprintf(stderr, "read /proc/cmdline: %s\n",
 			strerror(errno));
 		die_reboot();
 	}
-	
-	/* parse out actual image filename */
-	while ( strncmp(image, "IMAGE=", 6) != 0 ) {
-		image++;
-	}
-	image += 6; /* skip past IMAGE= */
-	image_ptr = image;
-	while ( strncmp(image_ptr, "\n", 1) != 0 ) {
-		image_ptr++;
-	}
-	*image_ptr = '\0';
 
-	strncpy(imagefile, "/images/", 9);
-	strncat(imagefile, image, (image_ptr - image));
+	/* parse out actual image filename and images device */
+	while ( strncmp(cmdline, "\n", 1) != 0 ) {
+
+		if ( strncmp(cmdline, "IMAGE=", 6) == 0 ) {
+
+			cmdline_ptr = cmdline;
+			cmdline += 6; /* skip past IMAGE= */
+			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
+				cmdline_ptr++;
+			}
+			strncpy(imagefile, "/images/", 9);
+			strncat(imagefile, cmdline, (cmdline_ptr - cmdline));
+		}
+
+		if ( strncmp(cmdline, "DEV=", 4) == 0 ) {
+
+			cmdline_ptr = cmdline;
+			cmdline += 4; /* skip past DEV= */
+			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
+				cmdline_ptr++;
+			}
+			strncpy(imagedev, "/dev/", 6);
+			strncat(imagedev, cmdline, (cmdline_ptr - cmdline));
+		}
+
+		cmdline++;
+	}
+
 	fclose(file);
 
 	fprintf(stderr, "image file: %s\n", imagefile);
+	fprintf(stderr, "image dev:  %s\n", imagedev);
 
-	/* mount IMAGES_DEV on /images */
-	if ( mount (IMAGES_DEV, "/images", "ext3", 0, NULL) < 0 ) {
+	/* mount imagedev on /images */
+	if ( mount (imagedev, "/images", "ext3", 0, NULL) < 0 ) {
 		fprintf(stderr, "mount /images: %s\n",
 			strerror(errno));
 		die_reboot();
