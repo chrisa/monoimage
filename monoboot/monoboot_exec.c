@@ -140,3 +140,11 @@ int do_netconf(cfg_t *cfg) {
     return ret;
 }
 
+/* 
+ * do_exit - add cleanup here (umounts? unconfig network?). 
+ */
+
+void do_exit(void) {
+    MB_DEBUG("[mb] exiting cleanly...\n");
+    exit(0);
+}

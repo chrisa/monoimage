@@ -289,7 +289,7 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
 }
 
 int cmd_show(cfg_t *cfg, char **cmdline) {
-    char *p;
+    char *p = NULL;
 
     if (cmdline[1] == NULL) {
 	return -1;
@@ -308,9 +308,15 @@ int cmd_show(cfg_t *cfg, char **cmdline) {
 	if (strncmp(cmdline[1], "d", 1) == 0) {
 	    p = get_disk_ls(cfg);
 	}
-	printf("%s", p);
+	
+	if (p) {
+	    printf("%s", p);
+	    free(p);
+	} else {
+	    printf("%% no such command\n");
+	    return -1;
+	}
     }
-    free(p);
     return 0;
 }
 
@@ -333,7 +339,7 @@ int cmd_exit(cfg_t *cfg, char **cmdline) {
 	set_mb_mode(MB_MODE_EXEC);
 	set_mb_prompt("mb> ");
     } else if (get_mb_mode() == MB_MODE_EXEC) {
-	MB_DEBUG("would exit here, with cleanup\n");
+	do_exit();
     } else if (get_mb_mode() == MB_MODE_CONF_IMAGE) {
 	set_mb_mode(MB_MODE_CONF);
 	set_mb_prompt("conf> ");

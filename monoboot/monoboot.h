@@ -71,6 +71,7 @@ int get_keypress(int delay);
 int do_exec (const char*, const char*, ...);
 int do_tftp (cfg_t *, char *, char *);
 int do_netconf (cfg_t *);
+void do_exit (void);
 
 /* CLI functions */
 
