@@ -53,12 +53,7 @@ int main(int argc, char **argv) {
     }
 
     cfg = load_config(MB_CONF);
-    if (check_last(cfg)) {
-	MB_DEBUG("[mb] main: last boot ok, proceeding\n");
-    } else {
-	MB_DEBUG("[mb] main: last boot failed, changing to fallback\n");
-	update_config_for_fallback(cfg);
-    }
+    check_last(cfg);
 
     if (interact == 1) {
 	MB_DEBUG("[mb] main: starting interactive cmdline\n");
@@ -81,13 +76,14 @@ cfg_t* load_config(char *file) {
     };
 
     static cfg_opt_t opts[] = {
-	CFG_INT("version",  0,      CFGF_NONE),
-	CFG_STR("default",  "none", CFGF_NONE),
-	CFG_STR("bootonce", "none", CFGF_NONE),
-	CFG_STR("fallback", "none", CFGF_NONE),
-	CFG_STR("lastboot", "none", CFGF_NONE),
-	CFG_STR("lasttry",  "none", CFGF_NONE),
-	CFG_STR("tryonce",  "none", CFGF_NONE),
+	CFG_INT("version",    0,      CFGF_NONE),
+	CFG_STR("default",    "none", CFGF_NONE),
+	CFG_STR("bootonce",   "none", CFGF_NONE),
+	CFG_STR("fallback",   "none", CFGF_NONE),
+	CFG_STR("lastboot",   "none", CFGF_NONE),
+	CFG_STR("lasttry",    "none", CFGF_NONE),
+	CFG_STR("tryonce",    "none", CFGF_NONE),
+	CFG_STR("bootimage",  "none", CFGF_NONE),
 	CFG_SEC("image", image_opts, CFGF_MULTI | CFGF_TITLE),
 	CFG_END()
     };
@@ -107,38 +103,43 @@ cfg_t* load_config(char *file) {
 
 /* examine last boot's success */
 int check_last(cfg_t *cfg) {
-    if (!strcmp(cfg_getstr(cfg, "lastboot"), cfg_getstr(cfg, "default"))) {
-    	MB_DEBUG("[mb] check_last: last boot was from default image, good\n");
 
-	/* check that it actually booted ok */
-	/* if it didn't, return FALSE to indicate we should change to fallback */
+    /* first thing - unset bootonce flag. */
+    cfg_setstr(cfg, "tryonce", "no");
 
-	return 1;
-    } else if (!strcmp(cfg_getstr(cfg, "lastboot"), cfg_getstr(cfg, "fallback"))) {
-    	MB_DEBUG("[mb] check_last: last boot was from fallback image, hmm\n");
+    /* check for success of last boot */
+    if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "lastboot")) != 0) {
+    	MB_DEBUG("[mb] check_last: last image attempted failed.\n");
+	/* the last attempt failed, amend the config to something sane */
+	
+	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "default")) == 0) {
+	    /* we just tried our default image and it failed. set bootimage to
+	       fallback */
+	    cfg_setstr(cfg, "bootimage", cfg_getstr(cfg, "fallback"));
+	}
 
-	/* having booted from fallback, we're up for trying default again */
+	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "fallback")) == 0) {
+	    /* we just tried our fallback image and it failed. yikes.
+	       don't do anything, sit here and wait for someone to
+	       help us out. */
 
-	return 1;
+	    /* XXX */
+	}
+
+	return 0;
+	
     } else {
-        MB_DEBUG("[mb] check_last: last boot was from neither default nor fallback, kinky\n");
-
-	/* check that it actually booted ok */
-	/* if it didn't, return FALSE to indicate we should change to fallback */
-	/* if it did, we're going to boot from the default anyway */
-	/* XXX maybe not */
+    	MB_DEBUG("[mb] check_last: last image attempted succeeded.\n");
+	/* it worked. if we just booted fallback properly, switch back
+	   to default. otherwise leave alone - we've already switched
+	   off bootonce, so we'll boot default as per normal */
+	
+	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "fallback")) == 0) {
+	    cfg_setstr(cfg, "bootimage", cfg_getstr(cfg, "default"));
+	}
 
 	return 1;
     }
-
-    return 0;
-}
-
-/* change our config so we boot off the fallback image */
-void update_config_for_fallback(cfg_t *cfg) {
-    MB_DEBUG("[mb] update_config_for_fallback: changing default boot image to fallback image %s\n", cfg_getstr(cfg, "fallback"));
-    cfg_setstr(cfg, "default", cfg_getstr(cfg, "fallback"));
-    return;
 }
 
 /* write config back to file, with shimmying */

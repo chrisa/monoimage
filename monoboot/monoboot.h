@@ -14,4 +14,3 @@ void show_config(cfg_t *cfg);
 void drop_config(cfg_t *cfg);
 void save_config(cfg_t *cfg);
 int check_last(cfg_t *cfg);
-void update_config_for_fallback(cfg_t *cfg);

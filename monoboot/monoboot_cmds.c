@@ -84,13 +84,14 @@ char *get_running_config(cfg_t *cfg) {
     char config[MB_CONFIG_MAX];
     int images, n;
 
-    sprintf(config, "\nversion = %ld\nbootonce = \"%s\"\nfallback = \"%s\"\nlastboot = \"%s\"\ntryonce = \"%s\"\nlasttry = \"%s\"\n", 
+    sprintf(config, "\nversion = %ld\nbootonce = \"%s\"\nfallback = \"%s\"\nlastboot = \"%s\"\ntryonce = \"%s\"\nlasttry = \"%s\"\n\nbootimage = \"%s\"\n", 
 	    cfg_getint(cfg,"version"), 
 	    cfg_getstr(cfg,"bootonce"),
 	    cfg_getstr(cfg,"fallback"),
 	    cfg_getstr(cfg,"lastboot"),
 	    cfg_getstr(cfg,"tryonce"),
-	    cfg_getstr(cfg,"lasttry"));
+	    cfg_getstr(cfg,"lasttry"),
+	    cfg_getstr(cfg,"bootimage"));
     
     images = cfg_size(cfg, "image");
     for (n = 0; n < images; n++) {
@@ -123,7 +124,11 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 	    return;
 	}
     } else {
-	image_tag = cfg_getstr(cfg, "default");
+	image_tag = cfg_getstr(cfg, "bootimage");
+    }
+
+    if (strncmp(cfg_getstr(cfg, "tryonce"), "yes", 3) == 0) {
+	image_tag = cfg_getstr(cfg, "bootonce");
     }
 
     MB_DEBUG("[mb] image_tag: %s\n", image_tag);
@@ -257,6 +262,24 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
 		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
 		    cfg_setstr(cfg, "fallback", cmdline[1]);
 		    printf("%s -> %s [ok]\n", "fallback", cmdline[1]);
+		} else {
+		    printf("no such tag %s\n", cmdline[1]);
+		}
+	    }
+
+	    if (strncmp(cmdline[0], "tryonce", 7) == 0) {
+		if (cmdline[1] && (strncmp(cmdline[1], "yes", 3) == 0 || strncmp(cmdline[1], "no", 2) == 0)) {
+		    cfg_setstr(cfg, "tryonce", cmdline[1]);
+		    printf("%s -> %s [ok]\n", "tryonce", cmdline[1]);
+		} else {
+		    printf("tryonce must be 'yes' or 'no'\n");
+		}
+	    }
+
+	    if (strncmp(cmdline[0], "bootimage", 9) == 0) {
+		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
+		    cfg_setstr(cfg, "bootimage", cmdline[1]);
+		    printf("%s -> %s [ok]\n", "bootimage", cmdline[1]);
 		} else {
 		    printf("no such tag %s\n", cmdline[1]);
 		}
