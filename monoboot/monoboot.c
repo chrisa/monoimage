@@ -53,6 +53,8 @@ int main(int argc, char **argv) {
     check_last(cfg);
 
     if (interact == 1) {
+	MB_DEBUG("[mb] main: configuring network\n");
+	do_netconf(cfg);
 	MB_DEBUG("[mb] main: starting interactive cmdline\n");
 	mb_interact(cfg);
     } else {
@@ -74,7 +76,6 @@ cfg_t* load_config(char *file) {
 
     static cfg_opt_t network_opts[] = {
 	CFG_STR("address", 0, CFGF_NONE),
-	CFG_STR("netmask", 0, CFGF_NONE),
 	CFG_STR("gateway", 0, CFGF_NONE),
 	CFG_END()
     };

@@ -120,10 +120,9 @@ char *get_running_config(cfg_t *cfg) {
     sec_count = cfg_size(cfg, "network");
     for (n = 0; n < sec_count; n++) {
 	cfg_t *network = cfg_getnsec(cfg, "network", n);
-	sprintf(buf, "\nnetwork %s {\n  address = %s\n  netmask = %s\n  gateway = %s\n}\n\n", 
+	sprintf(buf, "\nnetwork %s {\n  address = %s\n  gateway = %s\n}\n\n", 
 		cfg_title(network), 
 		cfg_getstr(network, "address"),
-		cfg_getstr(network, "netmask"),
 		cfg_getstr(network, "gateway"));
 	strncat(config, buf, strlen(buf));
     }
@@ -147,8 +146,6 @@ char *get_running_config(cfg_t *cfg) {
 }
 
 void cmd_boot(cfg_t *cfg, char **cmdline) {
-    
-    pid_t pid, status;
     int n, images;
     char *image_tag;
     char image_file[256];
@@ -193,29 +190,7 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
     MB_DEBUG("[mb] image_file: %s\n", image_file);
 
     /* fork/exec the kexec -l first */
-    if ( (pid = fork()) < 0) {
-	MB_DEBUG("[mb] boot_image: fork failed: %s\n", strerror(errno));
-	return;
-    } else if (pid == 0) {
-	MB_DEBUG("[mb] boot_image: booting image file %s\n", image_file);
-	if (execlp(KEXEC_BINARY, "kexec", "-l", image_file, (char *) 0) < 0) {
-	    MB_DEBUG("[mb] boot_image: exec of %s failed: %s\n", KEXEC_BINARY, strerror(errno));
-	    exit(1);
-	}
-    }
-    if (waitpid(pid, &status, 0) < 0) {
-	MB_DEBUG("[mb] boot_image: wait failed: %s\n", strerror(errno));
-	return;
-    } else if (WIFEXITED(status)) {
-	MB_DEBUG("[mb] child exited ... \n");
-	if (WEXITSTATUS(status)) {
-	    MB_DEBUG("[mb] ... non-zero, bailing out\n");
-	    return;
-	} else {
-	    MB_DEBUG("[mb] ... zero, looks good\n");
-	}
-    } else {
-	MB_DEBUG("[mb] child died, bailing\n");
+    if (do_exec(KEXEC_BINARY, "kexec", "-l", image_file, 0) < 0) {
 	return;
     }
 
@@ -224,7 +199,7 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
     drop_config(cfg);
 
     /* now exec the kexec -e -- hardly worth forking */
-    execlp("KEXEC_BINARY", "kexec", "-e", (char *) 0);
+    execlp(KEXEC_BINARY, "kexec", "-e", (char *) 0);
 
     /* can't happen; we're off booting the new kernel (right?) */
     MB_DEBUG("[mb] boot_image: we're still here. exec of %s failed: %s\n", KEXEC_BINARY, strerror(errno));
@@ -232,21 +207,23 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 }
 
 void cmd_show(cfg_t *cfg, char **cmdline) {
-    char *config;
+    char *p;
 
-    /* we expect either 'show running-config' or 'show startup-config' */
     if (cmdline[1] == NULL) {
 	return;
     } else {
 	if (strncmp(cmdline[1], "r", 1) == 0) {
 	    /* show run */
-	    config = get_running_config(cfg);
+	    p = get_running_config(cfg);
 	}
 	if (strncmp(cmdline[1], "s", 1) == 0) {
 	    /* show start */
-	    config = get_startup_config(cfg);
+	    p = get_startup_config(cfg);
 	}
-	printf("%s", config);
+	if (strncmp(cmdline[1], "v", 1) == 0) {
+	    p = strdup("monoboot v0\n");
+	}
+	printf("%s", p);
     }
 }
 
@@ -273,6 +250,7 @@ void cmd_exit(cfg_t *cfg, char **cmdline) {
     } else if (get_mb_mode() == MB_MODE_CONF_NET) {
 	set_mb_mode(MB_MODE_CONF);
 	set_mb_prompt("conf> ");
+	do_netconf(cfg);
     } else {
 	/* not sure what mode we're in then */
     }
@@ -426,7 +404,6 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
     } else if (get_mb_mode() == MB_MODE_CONF_NET) {
         current_section = get_mb_network();
 	if (strncmp(cmdline[0], "address", 7) == 0 || 
-	    strncmp(cmdline[0], "netmask", 7) == 0 || 
 	    strncmp(cmdline[0], "gateway", 7) == 0 ) {
 	    if (cmdline[1]) {
 		
