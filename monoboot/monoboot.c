@@ -11,8 +11,11 @@
 
 /* $Id$ */
 
-/*
+/* TODO
  *      path the config file into the rw filesys
+ *      'show disk' file listing 
+ *      tftp files into right place (disk: == /images ?)
+ *      remount rw as appropriate
  */
 
 #define C99_SOURCE
@@ -62,12 +65,16 @@ int main(int argc, char **argv) {
     cfg = load_config(conf_path);
 
     
-    /* get the delay from config , wait for keypress if > 0 */
-    delay = cfg_getint(cfg, "delay");
-    if (get_keypress(delay) == 0) {
-	interact = 1;
+    /* if we're not already doing interactive mode, get the delay from
+       config , wait for keypress if > 0 */
+    if (!interact) {
+	delay = cfg_getint(cfg, "delay");
+	if (get_keypress(delay) == 0) {
+	    interact = 1;
+	}
     }
 
+    /* deal with the fallout from last time round */
     check_last(cfg);
 
     if (interact == 1) {
