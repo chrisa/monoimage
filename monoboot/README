@@ -4,7 +4,112 @@ lemon 20040609
 libconfuse comes from http://www.nongnu.org/confuse/
 $ apt-get install libconfuse-dev (apparently)
 
-NB:
-Currently looks for 'kexec' in PATH. Make sure the one it finds is one that
-groks monoimages, or it'll just go 'Not a bzImage' and flail. 
+NB: Currently looks for 'kexec' in PATH. Make sure the one it finds is
+one that groks monoimages, or it'll just go 'Not a bzImage' and flail.
   -- chris
+
+monoboot looks in its config file to see which was the last image
+properly booted. The parameter 'lasttry' records the last image
+monoboot attempted to boot. This parameter is written out by monoboot
+just before an image is booted. The parameter 'lastboot' is written
+out by $program running inside the actual image, and records the last
+image to boot successfully - this is just copying the contents of
+lasttry to lastboot.
+
+monoboot can be told about three images: it calls them 'fallback',
+'default' and 'bootonce'. These images work like this:
+
+* fallback: if an image just failed to boot, and it wasn't 'bootonce',
+then boot 'fallback'.
+
+* default: unless told otherwise, and if we didn't fail last time,
+  boot 'default'.
+
+* if the config file has 'tryonce = yes' then set tryonce to no, and
+  boot bootonce.
+
+The idea is that if you're not very sure about your latest image, boot
+it as 'bootonce', and if it fails, you'll be back to 'default', not
+'fallback'. This is good because you're probably not running all the
+services you should be if you're in 'fallback', and it'd take an extra
+reboot to get back without bootonce.
+
+monoboot.c is installed as 'mbsh' and 'monoboot'. Invoked as mbsh it
+gives you a command line, where you can do file transfers, amend
+mb.conf etc. Invoked as monoboot it goes straight into 'boot_image',
+as if you'd run mbsh and run the 'boot' command.
+
+
+== monoboot CLI:
+
+Cisco style. No privilege levels, just enable mode or config
+mode. (Does ROMMON have privilege levels?) 
+
+Commands, amending config:
+
+configure terminal
+write memory
+image $tag
+  filename $file
+network $eth
+  address $ip
+  netmask $mask
+  gateway $ip
+line $tty
+password $pwd
+
+Commands, actions:
+
+boot 
+boot $tag
+copy tftp://$ip/$path disk:/$file
+copy scp://$user@$ip/$path disk:/$file
+copy disk:/$file tftp://$ip/$path
+copy disk:/$file scp://$user@$ip/$path
+show running-config
+show startup-config
+show image $tag
+show version
+show system
+
+== mb.conf
+
+When monoboot (or mbsh) starts, it reads the config file from disk to
+memory. In the cisco style, the copy in memory is called
+'running-config' and the copy on disk 'startup-config'.
+
+Editing the config file alters running-config, and changes will not be
+written to disk unless 'write memory' is used. The exception to this
+are the flags used to determine the last good image and whether the
+bootonce image has been tried.
+
+mb.conf parameters:
+
+version -- indicates the version of mbsh which saved this config.
+
+bootonce -- set to the tag of the image 
+default -- set to the tag of the image 
+fallback -- set to the tag of the image 
+
+lastboot -- managed by monoboot
+lasttry -- managed by monoboot
+tryonce -- managed by monoboot
+
+image stanza:
+
+image safe { -- image tag
+	filename = safe.img -- filename on disk
+	# XXX
+}
+
+network eth0 { -- /etc/network/interfaces style
+	address 1.1.1.1
+	netmask 255.255.255.0
+	gateway 1.1.1.254
+}
+
+line ssh   -- enable console on ...
+line telnet
+line serial
+		
+password $md5sum
