@@ -16,17 +16,29 @@
  *	datestamp the config upon write
  */
 
+#define C99_SOURCE
+
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
+#include <getopt.h>
 #include <confuse.h>
+#include <readline/readline.h>
+#include <readline/history.h>
+#include <malloc.h>
 #include "monoboot.h"
+
+/* global pointer for lines read with readline */
+char *line_read = (char *)NULL;
 
 int main(int argc, char **argv) {
     cfg_t *cfg;
+    int c;
+    int interact = 1;
 
     cfg = load_config(MB_CONF);
     show_config(cfg);
@@ -36,8 +48,76 @@ int main(int argc, char **argv) {
 	MB_DEBUG("[mb] main: last boot failed, changing to fallback\n");
 	update_config_for_fallback(cfg);
     }
-    boot_image(cfg);
-    return 0; /* probably not */
+
+    /* check for -i on cmdline */
+    opterr = 0;
+    while ( (c = getopt(argc, argv, "b") ) != EOF ) {
+	switch (c) {
+	case 'b': /* boot default straightaway */
+	    interact = 0;
+	    break;
+	default:
+	    break;
+	}
+    }
+    /* if no -b, then start a command line */
+    if (interact == 1) {
+	MB_DEBUG("[mb] main: starting interactive cmdline\n");
+	mb_interact(cfg);
+    } else {
+	MB_DEBUG("[mb] main: booting image\n");
+	boot_image(cfg);
+    }
+    return 0;
+}
+
+/* 
+ * Read a string, and return a pointer to it.
+ * Returns NULL on EOF. 
+ */
+
+char *rl_gets () {
+    /* If the buffer has already been allocated,
+       return the memory to the free pool. */
+    if (line_read) {
+	free (line_read);
+	line_read = (char *)NULL;
+    }
+    
+    /* Get a line from the user. */
+    line_read = readline ("mb> ");
+    
+    /* If the line has any text in it,
+       save it on the history. */
+    if (line_read && *line_read)
+	add_history (line_read);
+    
+    return (line_read);
+}
+
+/* 
+ * set up libreadline - 
+ *  turn off tabbing of filenames
+ *  custom complete?
+ */
+
+void init_readline (void) {
+    rl_bind_key ('\t', rl_insert);
+}
+
+/* 
+ * loop reading commands from the user, until 
+ * they either reboot or start a kernel 
+ */
+void mb_interact(cfg_t *cfg) {
+    init_readline();
+
+    while ( (line_read = rl_gets()) != NULL) {
+	if ( strncmp(line_read, "boot", 4) == 0 ) {
+	    boot_image(cfg);
+	}
+    }
+    MB_DEBUG("\n[mb] mb_interact: exiting mb_interact\n");
 }
 
 /* invoke confuse, parse file */
