@@ -37,8 +37,16 @@ char *line_read = (char *)NULL;
 
 int main(int argc, char **argv) {
     cfg_t *cfg;
-    int c;
     int interact = 1;
+
+    if (!strncmp(argv[0],"mbsh",4)) {
+	interact = 1;
+    } else if (!strncmp(argv[0],"monoboot",8)) {
+	interact = 0;
+    } else {
+	/* unsure what we've been run as */
+	interact = 1;
+    }
 
     cfg = load_config(MB_CONF);
     show_config(cfg);
@@ -49,18 +57,16 @@ int main(int argc, char **argv) {
 	update_config_for_fallback(cfg);
     }
 
-    /* check for -i on cmdline */
-    opterr = 0;
-    while ( (c = getopt(argc, argv, "b") ) != EOF ) {
-	switch (c) {
-	case 'b': /* boot default straightaway */
-	    interact = 0;
-	    break;
-	default:
-	    break;
-	}
-    }
-    /* if no -b, then start a command line */
+/*     opterr = 0; */
+/*     while ( (c = getopt(argc, argv, "b") ) != EOF ) { */
+/* 	switch (c) { */
+/* 	case 'b': /\* boot default straightaway *\/ */
+/* 	    break; */
+/* 	default: */
+/* 	    break; */
+/* 	} */
+/*     } */
+
     if (interact == 1) {
 	MB_DEBUG("[mb] main: starting interactive cmdline\n");
 	mb_interact(cfg);
