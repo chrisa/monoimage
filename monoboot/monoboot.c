@@ -17,6 +17,7 @@
  */
 
 #include <stdio.h>
+#include <unistd.h>
 #include <string.h>
 #include <confuse.h>
 #include "monoboot.h"
@@ -132,8 +133,11 @@ void boot_image(cfg_t *cfg) {
     drop_config(cfg);
     
     /* do it */
+    execlp(KEXEC_BINARY, "-l", cfg_getstr(cfg, "default"));
+    execlp(KEXEC_BINARY, "-e");
 
-    return; /* or not */
+    /* can't happen; we're off booting the new kernel (right?) */
+    return;
 }
 
 /* write config back to file, with shimmying */
