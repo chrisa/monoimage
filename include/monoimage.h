@@ -13,7 +13,7 @@ struct monoimage_header {
 	uint32_t  kernel_offset;
 	uint32_t  initrd_offset;
 	uint32_t  rootfs_offset;
-};
+} __packed__ ;
 
 #define MI_MAGIC "MI"
 
