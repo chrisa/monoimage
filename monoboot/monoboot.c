@@ -35,7 +35,6 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <termios.h>
-#include <string.h>
 #include "mbconf.h"
 #include "monoboot.h"
 
@@ -45,7 +44,7 @@ int main(int argc, char **argv) {
     char conf_path[MB_PATH_MAX];
     char bootimage[MB_IMAGE_MAX];
     int delay = 0;
-    char **cmdline;
+    char *cmdline[2];
     int ret;
 
     /* make sure important things are mounted */
@@ -112,8 +111,8 @@ int main(int argc, char **argv) {
 	mb_interact(cfg);
     } else {
 	MB_DEBUG("[mb] main: booting image\n");
-	cmdline[0] = (char *)bootimage;
-	cmd_boot(cfg, cmdline );
+	cmdline[1] = bootimage;
+	cmd_boot(cfg, cmdline);
     }
     return 0;
 }
@@ -239,6 +238,7 @@ int get_keypress (int delay) {
 	}
     }
 
+    printf("\n");
     set_canonical(1);
     return(1);
 }

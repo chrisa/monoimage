@@ -217,6 +217,7 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
        then boot it, else default tag */
 
     if (cmdline != NULL && cmdline[1] != NULL) {
+	MB_DEBUG("[mb] boot: tag %s\n", cmdline[1]);
 	/* check */
 	if (check_image_tag(cfg, cmdline[1])) {
 	    image_tag = cmdline[1];
