@@ -11,7 +11,7 @@
 #include <stdio.h>
 #include <unistd.h>   
 #include <sys/reboot.h>
-#include "monoimage.h"
+#include <monoimage.h>
 #include "loop.h"
 
 #define IMAGES_DEV "/dev/hda1"

@@ -44,13 +44,13 @@
 #define LO_NAME_SIZE	64
 #define LO_KEY_SIZE	32
 
-#include "my_dev_t.h"
+#include "loop_dev.h"
 
 struct loop_info {
 	int		lo_number;
-	my_dev_t	lo_device;
+	__linuxrc_dev_t	lo_device;
 	unsigned long	lo_inode;
-	my_dev_t	lo_rdevice;
+	__linuxrc_dev_t	lo_rdevice;
 	int		lo_offset;
 	int		lo_encrypt_type;
 	int		lo_encrypt_key_size;

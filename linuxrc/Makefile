@@ -1,6 +1,6 @@
 
-linuxrc: linuxrc.c monoimage.h loop.h my_dev_t.h
-	gcc -static -o linuxrc linuxrc.c
+linuxrc: linuxrc.c ../include/monoimage.h loop.h loop_dev.h
+	gcc -I../include -static -o linuxrc linuxrc.c
 
 clean:
 	rm -f linuxrc
