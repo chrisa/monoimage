@@ -589,3 +589,10 @@ int cmd_write(cfg_t *cfg, char **cmdline) {
     }
     return 0;
 }
+
+int cmd_shell(cfg_t *cfg, char **cmdline) {
+    	MB_DEBUG("[mb] cmd_shell: starting ash\n");
+	do_exec("/bin/ash", "ash", 0);
+	MB_DEBUG("[mb] cmd_shell: ash exited\n");
+	return 0;
+}

@@ -93,6 +93,7 @@ int cmd_copy(cfg_t *, char **);
 int cmd_conf(cfg_t *, char **);
 int cmd_exit(cfg_t *, char **);
 int cmd_write(cfg_t *, char **);
+int cmd_shell(cfg_t *, char **);
 
 /* util functions */
 char *get_kernel_console(void);

@@ -180,6 +180,11 @@ void mb_interact(cfg_t *cfg) {
 		    ret = cmd_write(cfg, cmdline);
 		}
 
+		/* == SHELL == */
+		if ( strncmp(cmdline[0], "shell", 5) == 0 ) {
+		    ret = cmd_shell(cfg, cmdline);
+		}
+
 	    } else {
 		/* unknown mode */
 	    }
