@@ -6,6 +6,17 @@ C=initrd.img
 DIRS="dev proc images"
 DEVS="loop console std hda"
 
+if [ -x /usr/sbin/mkcramfs ]
+then
+	MKCRAMFS="/usr/sbin/mkcramfs"
+elif [ -x /sbin/mkcramfs ]
+then
+	MKCRAMFS="/sbin/mkcramfs"
+else
+	echo no mkcramfs found
+	exit 1
+fi
+
 echo removing old initrd tree
 rm -Rf $T
 mkdir $T
@@ -31,6 +42,6 @@ cd ../..
 rm $T/dev/MAKEDEV
 
 echo making cramfs
-/usr/sbin/mkcramfs $T $C
+$MKCRAMFS $T $C
 
 echo new initrd is at $C
