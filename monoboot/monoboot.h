@@ -2,6 +2,8 @@
 #define MB_CONF_NEW	"mb.conf.new"
 #define MB_CONF_OLD	"mb.conf.new"
 
+#define KEXEC_BINARY    "kexec"
+
 #define MB_DEBUG(...) fprintf(stderr, __VA_ARGS__)
 
 cfg_t* load_config(char* file);
