@@ -10,7 +10,7 @@ AR     ?= /usr/bin/ar
 RANLIB ?= /usr/bin/ranlib
 CC     ?= /usr/bin/gcc
 
-all: monoboot mbsh monoinit
+all: monoboot mbsh monoinit mbnet
 
 libmonoboot.a: monoboot.h monoboot_cmds.c \
           monoboot_cli.c monoboot_exec.c monoboot_util.c
@@ -33,12 +33,16 @@ monoinit: libmonoboot.a monoinit.c
 mbsh: monoboot
 	ln -f monoboot mbsh
 
+mbnet: monoboot
+	ln -f monoboot mbnet
+
 clean: 
-	rm -f monoboot mbsh monoinit *.o *.a
+	rm -f monoboot mbsh mbnet monoinit *.o *.a
 
 install:
 	cp monoinit $(DESTDIR)/bin
 	cp monoboot $(DESTDIR)/bin
 	ln -f $(DESTDIR)/bin/monoboot $(DESTDIR)/bin/mbsh
+	ln -f $(DESTDIR)/bin/monoboot $(DESTDIR)/bin/mbnet
 
 .PHONY: clean

@@ -44,18 +44,6 @@ int main(int argc, char **argv) {
     char conf_path[MB_PATH_MAX];
     int delay = 0;
 
-    if (!strncmp(basename(argv[0]),"mbsh",4)) {
-	MB_DEBUG("[mb] running as mbsh\n");
-	interact = 1;
-    } else if (!strncmp(basename(argv[0]),"monoboot",8)) {
-	MB_DEBUG("[mb] running as monoboot\n");
-	interact = 0;
-    } else {
-	/* unsure what we've been run as */
-	MB_DEBUG("[mb] unknown argv0 %s\n", argv[0]);
-	interact = 1;
-    }
-
     /* make sure important things are mounted */
     if (check_mounted(MB_PATH_CONFIG) != MB_CM_YES) {
 	MB_DEBUG("[mb] mounting config partition\n");
@@ -69,10 +57,31 @@ int main(int argc, char **argv) {
 	    MB_DEBUG("[mb] mount images partition failed\n");
 	}
     }
-
+    
+    /* load config */
     sprintf(conf_path, "%s/%s", MB_PATH_CONFIG, MB_CONF);
     MB_DEBUG("[mb] main: conf file is %s\n", conf_path);
     cfg = load_config(conf_path);
+
+    /* look to see if we're mbnet */
+    if (!strncmp(basename(argv[0]),"mbnet",5)) {
+	MB_DEBUG("[mb] running as mbnet\n");
+	do_netconf(cfg);
+	do_exit();
+    }
+
+    /* run as either interactive or non-interactive */
+    if (!strncmp(basename(argv[0]),"mbsh",4)) {
+	MB_DEBUG("[mb] running as mbsh\n");
+	interact = 1;
+    } else if (!strncmp(basename(argv[0]),"monoboot",8)) {
+	MB_DEBUG("[mb] running as monoboot\n");
+	interact = 0;
+    } else {
+	/* unsure what we've been run as */
+	MB_DEBUG("[mb] unknown argv0 %s\n", argv[0]);
+	interact = 1;
+    }
 
     
     /* if we're not already doing interactive mode, get the delay from
