@@ -84,12 +84,14 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	int debug, real_mode_entry;
 	int opt;
 	struct monoimage_header bi_header;
-	int file_fd;
-	struct stat imgbuf;
+	int i_file_fd, c_file_fd;
+	struct stat config_buf;
+	struct stat images_buf;
 	struct stat devbuf;
 	DIR *dir;
 	struct dirent *dev;
 	char images_dev[256];
+	char config_dev[256];
 	char *buf;
 	FILE *mtab;
 	char *buf_ptr;
@@ -147,12 +149,22 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	}
 
 	/*
-	 * work out which device the image file is on
+	 * work out which device we should mount for /images and /config
 	 */
 
-	file_fd = fileno(file);
-	if (fstat(file_fd, &imgbuf) < 0) {
+	if ((c_file_fd = open("/config/mb.conf", O_RDONLY)) < 0) {
+		fprintf(stderr, "open /config/mb.conf: %s\n",
+			strerror(errno));
+		return -1;
+	}
+	i_file_fd = fileno(file);
+	if (fstat(i_file_fd, &images_buf) < 0) {
 		fprintf(stderr, "stat image: %s\n",
+			strerror(errno));
+		return -1;
+	}
+	if (fstat(c_file_fd, &config_buf) < 0) {
+		fprintf(stderr, "stat config: %s\n",
 			strerror(errno));
 		return -1;
 	}
@@ -170,14 +182,18 @@ int monoimage_load(FILE *file, int argc, char **argv,
 			closedir(dir);
 			return -1;
 		}
-		if (devbuf.st_rdev == imgbuf.st_dev && S_ISBLK(devbuf.st_mode)) {
-			/* this is our device */
+		if (devbuf.st_rdev == images_buf.st_dev && S_ISBLK(devbuf.st_mode)) {
+			/* this is our images device */
 			strncpy(images_dev, dev->d_name, strlen(dev->d_name));
-			break;
+		}
+		if (devbuf.st_rdev == config_buf.st_dev && S_ISBLK(devbuf.st_mode)) {
+			/* this is our config device */
+			strncpy(config_dev, dev->d_name, strlen(dev->d_name));
 		}
 	}
 	closedir(dir);
 	fprintf(stderr, "images device: %s\n", images_dev);
+	fprintf(stderr, "config device: %s\n", config_dev);
 
 	/* figure out what the path to the image will be when we mount the images device on /images */
 	
@@ -217,9 +233,12 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	}
 	
 	if (command_line_append) {
-		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s DEV=%s", command_line_append, image, images_dev);
+	    sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s IDEV=%s CDEV=%s", 
+		    command_line_append, 
+		    image, images_dev, config_dev);
 	} else {
-		sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s DEV=%s", image, images_dev);
+	    sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s IDEV=%s CDEV=%s", 
+		    image, images_dev, config_dev);
 	}
 		
 	fprintf(stderr, "%s\n", command_line);

@@ -138,6 +138,7 @@ int main (int argc, char **argv)
 	char *cmdline_ptr;
 	char *imagefile;
 	char *imagedev;
+	char *configdev;
 	int offset;
 	struct monoimage_header bi_header;
 	struct stat s;
@@ -148,6 +149,7 @@ int main (int argc, char **argv)
 	cmdline   = (char *)malloc(256 * sizeof(char));
 	imagefile = (char *)malloc(256 * sizeof(char));
 	imagedev  = (char *)malloc(256 * sizeof(char));
+	configdev = (char *)malloc(256 * sizeof(char));
 
 	/* mount proc */
 	if ( mount("proc", "/proc", "proc", 0, NULL) < 0 ) {
@@ -182,7 +184,7 @@ int main (int argc, char **argv)
 			strncat(imagefile, cmdline, (cmdline_ptr - cmdline));
 		}
 
-		if ( strncmp(cmdline, "DEV=", 4) == 0 ) {
+		if ( strncmp(cmdline, "IDEV=", 4) == 0 ) {
 
 			cmdline_ptr = cmdline;
 			cmdline += 4; /* skip past DEV= */
@@ -192,6 +194,16 @@ int main (int argc, char **argv)
 			strncpy(imagedev, "/dev/", 6);
 			strncat(imagedev, cmdline, (cmdline_ptr - cmdline));
 		}
+		if ( strncmp(cmdline, "CDEV=", 4) == 0 ) {
+
+			cmdline_ptr = cmdline;
+			cmdline += 4; /* skip past DEV= */
+			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
+				cmdline_ptr++;
+			}
+			strncpy(configdev, "/dev/", 6);
+			strncat(configdev, cmdline, (cmdline_ptr - cmdline));
+		}
 
 		cmdline++;
 	}
@@ -200,6 +212,7 @@ int main (int argc, char **argv)
 
 	fprintf(stderr, "image file: %s\n", imagefile);
 	fprintf(stderr, "image dev:  %s\n", imagedev);
+	fprintf(stderr, "config dev: %s\n", configdev);
 
 	/* mount imagedev on /images */
 	if ( mount (imagedev, "/images", "ext3", 0, NULL) < 0 ) {

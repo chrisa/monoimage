@@ -267,7 +267,7 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     /* find out what console we're currently using, assume that it'll
        do for the new kernel too */
     console = get_kernel_console();
-    sprintf(kexec_cmdline, "--command-line=%s", console);
+    sprintf(kexec_cmdline, "--command-line=%s ide=nodma", console);
     
     /* fork/exec the kexec -l first */
     if (do_exec(KEXEC_BINARY, "kexec", kexec_cmdline, "-l", image_path, 0) != 0) {
