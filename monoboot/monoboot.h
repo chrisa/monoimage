@@ -44,6 +44,12 @@
 #define MB_ERR_FILEMISSING -3
 #define MB_ERR_KEXECFAIL   -4
 
+/* cmdline errors */
+#define MB_CMDLINE_NOPROC  -1
+#define MB_CMDLINE_PARSE   -2
+
+
+
 #define MB_DEBUG(...) fprintf(stderr, __VA_ARGS__)
 
 /* main functions */

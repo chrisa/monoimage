@@ -52,64 +52,81 @@ void drop_config(cfg_t *cfg)
 int parse_cmdline(char *imagefile, char *configdev)
 {
     FILE *file;
-    char *cmdline;
-    char *cmdline_ptr;
-
+    char cmdline[MB_CMDLINE_MAX];
+    char *cmdline_start, *cmdline_end;
+    
     /* open /proc/cmdline, read image filename */
     if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
 	fprintf(stderr, "/proc/cmdline: open: %s\n",
 		strerror(errno));
-	exit(1);
+	return MB_CMDLINE_NOPROC;
     }
-    if ( fgets(cmdline, 256, file) == NULL ) {
+    if ( fgets(cmdline, MB_CMDLINE_MAX, file) == NULL ) {
 	fprintf(stderr, "read /proc/cmdline: %s\n",
 		strerror(errno));
-	exit(1);
+	return MB_CMDLINE_NOPROC;
     }
     
     /* parse out actual image filename and images device */
-    while ( strncmp(cmdline, "\n", 1) != 0 ) {
+    cmdline_start = cmdline;
+    while ( strncmp(cmdline_start, "\n", 1) != 0 ) {
 	
-	if ( strncmp(cmdline, "IMAGE=", 6) == 0 ) {
+	if ( strncmp(cmdline_start, "IMAGE=", 6) == 0 ) {
 	    
-	    cmdline_ptr = cmdline;
-	    cmdline += 6; /* skip past IMAGE= */
-	    while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
-		cmdline_ptr++;
+	    cmdline_end = cmdline_start;
+	    cmdline_start += 6; /* skip past IMAGE= */
+	    while ( strncmp(cmdline_end, " ", 1) != 0 && strncmp(cmdline_end, "\n", 1) != 0) {
+		cmdline_end++;
 	    }
-	    strncpy(imagefile, "/images/", 9);
-	    strncat(imagefile, cmdline, (cmdline_ptr - cmdline));
+	    strncpy(imagefile, "/images", 9);
+	    strncat(imagefile, cmdline_start, (cmdline_end - cmdline_start));
 	}
 	
-	if ( strncmp(cmdline, "CDEV=", 5) == 0 ) {
+	if ( strncmp(cmdline_start, "CDEV=", 5) == 0 ) {
 	    
-	    cmdline_ptr = cmdline;
-	    cmdline += 5; /* skip past DEV= */
-	    while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
-		cmdline_ptr++;
+	    cmdline_end = cmdline_start;
+	    cmdline_start += 5; /* skip past DEV= */
+	    while ( strncmp(cmdline_end, " ", 1) != 0 && strncmp(cmdline_end, "\n", 1) != 0) {
+		cmdline_end++;
 	    }
 	    strncpy(configdev, "/dev/", 6);
-	    strncat(configdev, cmdline, (cmdline_ptr - cmdline));
+	    strncat(configdev, cmdline_start, (cmdline_end - cmdline_start));
 	}
 	
-	cmdline++;
+	cmdline_start++;
     }
     fclose(file);
-    return 0;
+    if (strlen(imagefile) && strlen(configdev)) {
+	return 0;
+    } else {
+	return MB_CMDLINE_PARSE;
+    }
+       
 }
 
 int main (void) 
 {
     cfg_t *cfg;
-    char cdev[256];
-    char image[256];
+    char *image;
+    char *cdev;
     char *filename;
     int images, n;
 
+    image = (char *)malloc(MB_PATH_MAX * sizeof(char));
+    cdev  = (char *)malloc(MB_PATH_MAX * sizeof(char));
+
     /* find the config dev from the kernel cmdline */
-    if (parse_cmdline(image, cdev) != 0) {
-	fprintf(stderr, "[mi] failed to parse cmdline - is /proc/mounted?");
-	exit(1);
+    if ((n = parse_cmdline(image, cdev)) != 0) {
+	if (n == MB_CMDLINE_NOPROC) {
+	    fprintf(stderr, "[mi] couldn't read from /proc/cmdline\n");
+	    exit(1);
+	} else if (n == MB_CMDLINE_PARSE) {
+	    fprintf(stderr, "[mi] failed to parse cmdline\n");
+	    exit(1);
+	} else {
+	    fprintf(stderr, "[mi] unknown error finding config dev / image\n");
+	    exit(1);
+	}
     }
     fprintf(stderr, "[mi] config dev: %s\n", cdev);
     fprintf(stderr, "[mi] image file: %s\n", image);
