@@ -107,13 +107,10 @@ int parse_cmdline(char *imagefile, char *configdev)
 int main (void) 
 {
     cfg_t *cfg;
-    char *image;
-    char *cdev;
+    char image[MB_PATH_MAX];
+    char cdev[MB_PATH_MAX];
     char *filename;
     int images, n;
-
-    image = (char *)malloc(MB_PATH_MAX * sizeof(char));
-    cdev  = (char *)malloc(MB_PATH_MAX * sizeof(char));
 
     /* find the config dev from the kernel cmdline */
     if ((n = parse_cmdline(image, cdev)) != 0) {
