@@ -76,7 +76,7 @@ int bzImage_load(FILE *file, int argc, char **argv,
 	size_t size;
 	const char *command_line;
 	const char *ramdisk;
-	FILE *fp_ramdisk;
+	FILE *fp_ramdisk = NULL;
 	unsigned long ramdisk_length;
 	int command_line_len;
 	int command_line_off;
