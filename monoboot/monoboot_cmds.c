@@ -9,6 +9,7 @@
 #include <confuse.h>
 #include "monoboot.h"
 #include "monoboot_cmds.h"
+#include "monoboot_cli.h"
 
 /* $Id$ */
 
@@ -129,13 +130,25 @@ void cmd_show(cfg_t *cfg, char **cmdline) {
 
 	}
     }
-    
-
-
 }
 
 void cmd_copy(cfg_t *cfg, char **cmdline) {
 }
 
+void cmd_exit(cfg_t *cfg, char **cmdline) {
+    if (get_mb_mode() == MB_MODE_CONF) {
+	set_mb_mode(MB_MODE_EXEC);
+	//update_config(cfg);
+	set_mb_prompt("mb> ");
+    } else if (get_mb_mode() == MB_MODE_EXEC) {
+	//do_exit();
+	MB_DEBUG("would exit here, with cleanup\n");
+    } else {
+	/* not sure what mode we're in then */
+    }
+}
+
 void cmd_conf(cfg_t *cfg, char **cmdline) {
+    set_mb_prompt("conf> ");
+    set_mb_mode(MB_MODE_CONF);
 }

@@ -1,3 +1,5 @@
+# $Id$ 
+
 MB_CFLAGS += -g -Wall -pedantic -std=c99
 MB_LIBS   += -lconfuse -lreadline
 
@@ -6,10 +8,12 @@ LDLIBS += $(MB_LIBS)
 
 all: monoboot mbsh
 
-monoboot: monoboot.c monoboot.h monoboot_cmds.c monoboot_cmds.h
+monoboot: monoboot.c monoboot.h monoboot_cmds.c monoboot_cmds.h \
+          monoboot_cli.c monoboot_cli.h
 	gcc -c $(CFLAGS) monoboot.c
 	gcc -c $(CFLAGS) monoboot_cmds.c
-	gcc -o monoboot $(LDLIBS) monoboot.o monoboot_cmds.o
+	gcc -c $(CFLAGS) monoboot_cli.c
+	gcc -o monoboot $(LDLIBS) monoboot.o monoboot_cmds.o monoboot_cli.o
 
 mbsh: monoboot
 	ln -f monoboot mbsh
