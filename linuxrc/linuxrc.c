@@ -132,15 +132,32 @@ void die_halt (void)
 	}
 }
 
+static char *get_cmdline_var (char *cmdline, char *var) {
+    char *start_ptr, *end_ptr;
+    char *value;
+    
+    start_ptr= strstr(cmdline, var);
+    if (start_ptr) {
+	end_ptr = strstr(start_ptr, " ");
+	if (end_ptr == '\0') {
+	    end_ptr = strstr(start_ptr, "\n");
+	}
+	start_ptr += (strlen(var) + 1); /* +1 for the =, not a NULL */
+	value = strndup(start_ptr, (end_ptr - start_ptr));
+    } else {
+	return NULL;
+    }
+    return value;
+}
+
 int main (int argc, char **argv)
 {
 	FILE *file;
-	char *start_ptr, *end_ptr;
-	char *cmdline_ptr;
 	char imagefile[BUF_MAX];
 	char configdev[BUF_MAX];
 	char imagedev[BUF_MAX];
 	char cmdline[BUF_MAX];
+	char *value;
 	int offset;
 	struct monoimage_header bi_header;
 	struct stat s;
@@ -151,11 +168,12 @@ int main (int argc, char **argv)
 	if ( mount("proc", "/proc", "proc", 0, NULL) < 0 ) {
 		fprintf(stderr, "mount /proc: %s\n",
 			strerror(errno));
-		die_reboot();
+		//		die_reboot();
 	}
 
 	/* open /proc/cmdline, read image filename */
-	if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
+	//	if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
+	if ( (file = fopen("cmdline", "r")) == NULL ) {
 		fprintf(stderr, "/proc/cmdline: open: %s\n",
 			strerror(errno));
 		die_reboot();
@@ -166,53 +184,33 @@ int main (int argc, char **argv)
 		die_reboot();
 	}
 
-	/* parse out actual image filename and image/config devices */
-	cmdline_ptr = cmdline;
+	fclose(file);
 
-	start_ptr= strstr(cmdline_ptr, "IMAGE=");
-	if (start_ptr) {
-	    end_ptr = strstr(start_ptr, " ");
-	    if (end_ptr == '\0') {
-		end_ptr = strstr(start_ptr, "\n");
-	    }
-	    start_ptr += 6; /* skip past IMAGE= */
-	    strncpy(imagefile, "/images/", 9);
-	    strncat(imagefile, start_ptr, (end_ptr - start_ptr));
+	/* parse out actual image filename and image/config devices */
+	if ((value = get_cmdline_var(cmdline, "IMAGE")) != NULL) {
+	    strcpy(imagefile, "/images/");
+	    strcat(imagefile, value);
 	} else {
 	    fprintf(stderr, "no IMAGE in cmdline\n");
 	    die_reboot();
-	}
+	} 
 
-	start_ptr= strstr(cmdline_ptr, "IDEV=");
-	if (start_ptr) {
-	    end_ptr = strstr(start_ptr, " ");
-	    if (end_ptr == '\0') {
-		end_ptr = strstr(start_ptr, "\n");
-	    }
-	    start_ptr += 5; /* skip past IDEV= */
-	    strncpy(imagedev, "/dev/", 6);
-	    strncat(imagedev, start_ptr, (end_ptr - start_ptr));
+	if ((value = get_cmdline_var(cmdline, "IDEV")) != NULL) {
+	    strcpy(imagedev, "/dev/");
+	    strcat(imagedev, value);
 	} else {
 	    fprintf(stderr, "no IDEV in cmdline\n");
 	    die_reboot();
-	}
+	} 
 
-	start_ptr= strstr(cmdline_ptr, "CDEV=");
-	if (start_ptr) {
-	    end_ptr = strstr(start_ptr, " ");
-	    if (end_ptr == '\0') {
-		end_ptr = strstr(start_ptr, "\n");
-	    }
-	    start_ptr += 5; /* skip past CDEV= */
-	    strncpy(configdev, "/dev/", 6);
-	    strncat(configdev, start_ptr, (end_ptr - start_ptr));
+	if ((value = get_cmdline_var(cmdline, "CDEV")) != NULL) {
+	    strcpy(configdev, "/dev/");
+	    strcat(configdev, value);
 	} else {
 	    fprintf(stderr, "no CDEV in cmdline\n");
 	    die_reboot();
-	}
+	} 
 	    
-	fclose(file);
-
 	fprintf(stderr, "image file: %s\n", imagefile);
 	fprintf(stderr, "image dev:  %s\n", imagedev);
 	fprintf(stderr, "config dev: %s\n", configdev);
