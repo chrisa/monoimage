@@ -56,9 +56,18 @@ int main(int argc, char **argv) {
 	interact = 1;
     }
 
-    /* get everything mounted from fstab so we can load config */
-    if (do_exec(MOUNT_BINARY, "mount", "-a", 0) != 0) {
-	MB_DEBUG("[mb] mount -a failed\n");
+    /* make sure important things are mounted */
+    if (check_mounted(MB_PATH_CONFIG) != MB_CM_YES) {
+	MB_DEBUG("[mb] mounting config partition\n");
+	if (do_exec(MOUNT_BINARY, "mount", MB_PATH_CONFIG, 0) != 0) {
+	    MB_DEBUG("[mb] mount config partition failed\n");
+	}
+    }
+    if (check_mounted(MB_PATH_IMAGES) != MB_CM_YES) {
+	MB_DEBUG("[mb] mounting images partition\n");
+	if (do_exec(MOUNT_BINARY, "mount", MB_PATH_IMAGES, 0) != 0) {
+	    MB_DEBUG("[mb] mount images partition failed\n");
+	}
     }
 
     sprintf(conf_path, "%s/%s", MB_PATH_CONFIG, MB_CONF);
