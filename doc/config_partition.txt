@@ -1,3 +1,5 @@
+(this is out of date; monoimage.conf will be a 'confuse' style file)
+
 config partition:
 
 typically /dev/hda2 of a CF card. 
