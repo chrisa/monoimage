@@ -1,8 +1,6 @@
 #define MB_CONF		"mb.conf"
 #define MB_CONF_NEW	"mb.conf.new"
-#define MB_CONF_OLD	"mb.conf.new"
-
-#define KEXEC_BINARY    "kexec"
+#define MB_CONF_OLD	"mb.conf.old"
 
 #define MB_DEBUG(...) fprintf(stderr, __VA_ARGS__)
 

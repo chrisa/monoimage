@@ -181,7 +181,6 @@ void init_readline (void) {
 void mb_interact(cfg_t *cfg) {
     char **cmdline;
     init_readline();
-    
 
     while ( (line_read = rl_gets()) != NULL) {
 	cmdline = split_cmdline(line_read);
@@ -193,7 +192,7 @@ void mb_interact(cfg_t *cfg) {
 
 	/* == SHOW == */
 	if ( strncmp(cmdline[0], "show", 4) == 0 ) {
-	    // cmd_show(cfg, cmdline);
+	    cmd_show(cfg, cmdline);
 	}
 
 	/* == COPY == */

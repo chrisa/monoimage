@@ -17,3 +17,9 @@ void cmd_show(cfg_t *, char **);
 void cmd_copy(cfg_t *, char **);
 void cmd_conf(cfg_t *, char **);
 
+/* needs these binaries */
+
+#define KEXEC_BINARY "/usr/sbin/kexec"
+#define TFTP_BINARY  "/usr/bin/tftp"
+#define SCP_BINARY   "/usr/bin/scp"
+#define IP_BINARY    "/bin/ip"
