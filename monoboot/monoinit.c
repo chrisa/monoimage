@@ -49,11 +49,29 @@ void drop_config(cfg_t *cfg)
     cfg_free(cfg);
 }
 
+static char *get_cmdline_var (char *cmdline, char *var) {
+    char *start_ptr, *end_ptr;
+    char *value;
+    
+    start_ptr= strstr(cmdline, var);
+    if (start_ptr) {
+	end_ptr = strstr(start_ptr, " ");
+	if (end_ptr == '\0') {
+	    end_ptr = strstr(start_ptr, "\n");
+	}
+	start_ptr += (strlen(var) + 1); /* +1 for the =, not a NULL */
+	value = strndup(start_ptr, (end_ptr - start_ptr));
+    } else {
+	return NULL;
+    }
+    return value;
+}
+
 int parse_cmdline(char *imagefile, char *configdev)
 {
     FILE *file;
+    char *value;
     char cmdline[MB_CMDLINE_MAX];
-    char *cmdline_start, *cmdline_end;
     
     /* open /proc/cmdline, read image filename */
     if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
@@ -66,42 +84,30 @@ int parse_cmdline(char *imagefile, char *configdev)
 		strerror(errno));
 	return MB_CMDLINE_NOPROC;
     }
-    
+    fclose(file);    
+
     /* parse out actual image filename and images device */
-    cmdline_start = cmdline;
-    while ( strncmp(cmdline_start, "\n", 1) != 0 ) {
-	
-	if ( strncmp(cmdline_start, "IMAGE=", 6) == 0 ) {
-	    
-	    cmdline_end = cmdline_start;
-	    cmdline_start += 6; /* skip past IMAGE= */
-	    while ( strncmp(cmdline_end, " ", 1) != 0 && strncmp(cmdline_end, "\n", 1) != 0) {
-		cmdline_end++;
-	    }
-	    strncpy(imagefile, "", 1);
-	    strncat(imagefile, cmdline_start, (cmdline_end - cmdline_start));
-	}
-	
-	if ( strncmp(cmdline_start, "CDEV=", 5) == 0 ) {
-	    
-	    cmdline_end = cmdline_start;
-	    cmdline_start += 5; /* skip past DEV= */
-	    while ( strncmp(cmdline_end, " ", 1) != 0 && strncmp(cmdline_end, "\n", 1) != 0) {
-		cmdline_end++;
-	    }
-	    strncpy(configdev, "/dev/", 6);
-	    strncat(configdev, cmdline_start, (cmdline_end - cmdline_start));
-	}
-	
-	cmdline_start++;
-    }
-    fclose(file);
+    if ((value = get_cmdline_var(cmdline, "IMAGE")) != NULL) {
+	strcpy(imagefile, "/images/");
+	strcat(imagefile, value);
+    } else {
+	fprintf(stderr, "no IMAGE in cmdline\n");
+	return MB_CMDLINE_PARSE;
+    } 
+    
+    if ((value = get_cmdline_var(cmdline, "CDEV")) != NULL) {
+	strcpy(configdev, "/dev/");
+	strcat(configdev, value);
+    } else {
+	fprintf(stderr, "no CDEV in cmdline\n");
+	return MB_CMDLINE_PARSE;
+    } 
+
     if (strlen(imagefile) && strlen(configdev)) {
 	return 0;
     } else {
 	return MB_CMDLINE_PARSE;
     }
-       
 }
 
 int main (void) 
