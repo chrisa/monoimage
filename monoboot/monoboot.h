@@ -33,6 +33,7 @@
 #define SCP_BINARY   "/usr/bin/scp"
 #define IP_BINARY    "/bin/ip"
 #define MOUNT_BINARY "/bin/mount"
+#define RSYNC_BINARY "/usr/bin/rsync"
 
 /* CLI modes */
 
