@@ -20,6 +20,7 @@
 #define TFTP_BINARY  "/usr/bin/tftp"
 #define SCP_BINARY   "/usr/bin/scp"
 #define IP_BINARY    "/bin/ip"
+#define MOUNT_BINARY "/bin/mount"
 
 /* CLI modes */
 

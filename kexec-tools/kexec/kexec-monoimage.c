@@ -36,7 +36,7 @@ int monoimage_probe(FILE *file)
 			strerror(errno));
 		return -1;
 	}
-	if (memcmp(header.magic, "BI", 2) != 0) {
+	if (memcmp(header.magic, MI_MAGIC, 2) != 0) {
 		fprintf(stderr, "probe: not a monoimage\n");
 		return -1;
 	}

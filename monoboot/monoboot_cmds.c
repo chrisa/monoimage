@@ -185,6 +185,11 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 
     MB_DEBUG("[mb] image_file: %s\n", image_file);
 
+    /* get /proc mounted for kexec's benefit */
+    if (do_exec(MOUNT_BINARY, "mount", "-t", "proc", "proc", "/proc", 0) != 0) {
+	return;
+    }
+
     /* fork/exec the kexec -l first */
     if (do_exec(KEXEC_BINARY, "kexec", "-l", image_file, 0) != 0) {
 	return;
