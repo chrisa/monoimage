@@ -12,6 +12,8 @@ This partition scheme works, others may also work: three partitions,
 Create hda1 of say 32M, hda2 of 8M, and hda3 as the rest of the
 disk. Format all as ext3. Populate hda1 with this:
 
+XXX flag buildroot from busybox CVS
+
 XXX root file list
 
 /lib/libc.so.6
