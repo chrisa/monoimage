@@ -3,7 +3,7 @@ T=tmp
 C=../initrd.img
 
 DIRS="dev proc images"
-DEVS="loop0 console std hda"
+DEVS="loop console std hda"
 
 echo removing old initrd tree
 rm -Rf $T
