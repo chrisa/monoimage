@@ -125,6 +125,7 @@ int main (void)
     char image[MB_PATH_MAX];
     char cdev[MB_PATH_MAX];
     char cpath[MB_PATH_MAX];
+    char rsync_cmd[MB_CMDLINE_MAX];
     char *filename;
     int images, n;
 
@@ -147,9 +148,8 @@ int main (void)
     
     /* mount cdev on /config */
     if ( mount (cdev, "/config", "ext3", 0, NULL) < 0 ) {
-	fprintf(stderr, "mount /config: %s\n",
+	fprintf(stderr, "mount /config failed: %s\n",
 		strerror(errno));
-	exit(1);
     }
     
     /* load the mb.conf */
@@ -173,12 +173,15 @@ int main (void)
 
     /* mount a ramfs on /etc */
     if (do_exec(MOUNT_BINARY, "mount", "-t", "tmpfs", "tmpfs", "/etc", 0) != 0) {
-	MB_DEBUG("[mb] mount /etc failed\n");
+	MB_DEBUG("[mb] mount /etc failed: %s\n",
+		 strerror(errno));
     }
 
     /* clone cpath's contents into /etc */
-    
-    
+    sprintf(rsync_cmd, "%s -rt %s/etc /etc", RSYNC_BINARY, cpath);
+    MB_DEBUG("[mb] will system cmdline: %s\n", rsync_cmd);
+    system(rsync_cmd);
+
     /* done */
     exit(0);
 }
