@@ -88,8 +88,7 @@ int parse_cmdline(char *imagefile, char *configdev)
 
     /* parse out actual image filename and images device */
     if ((value = get_cmdline_var(cmdline, "IMAGE")) != NULL) {
-	strcpy(imagefile, "/images/");
-	strcat(imagefile, value);
+	strcpy(imagefile, value);
     } else {
 	fprintf(stderr, "no IMAGE in cmdline\n");
 	return MB_CMDLINE_PARSE;
