@@ -37,6 +37,7 @@ clean:
 	rm -f monoboot mbsh monoinit *.o *.a
 
 install:
+	cp monoinit $(DESTDIR)/bin
 	cp monoboot $(DESTDIR)/bin
 	ln -f $(DESTDIR)/bin/monoboot $(DESTDIR)/bin/mbsh
 
