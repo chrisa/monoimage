@@ -133,9 +133,9 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	image = argv[optind];
 	  
 	if (command_line_append) {
-		sprintf(command_line, "root=/dev/hda1 ro %s IMAGE=%s", command_line_append, image);
+		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s", command_line_append, image);
 	} else {
-		sprintf(command_line, "root=/dev/hda1 ro IMAGE=%s", image);
+		sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s", image);
 	}
 		
 	fprintf(stderr, "%s\n", command_line);
