@@ -184,20 +184,20 @@ int main (int argc, char **argv)
 			strncat(imagefile, cmdline, (cmdline_ptr - cmdline));
 		}
 
-		if ( strncmp(cmdline, "IDEV=", 4) == 0 ) {
+		if ( strncmp(cmdline, "IDEV=", 5) == 0 ) {
 
 			cmdline_ptr = cmdline;
-			cmdline += 4; /* skip past DEV= */
+			cmdline += 5; /* skip past DEV= */
 			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
 				cmdline_ptr++;
 			}
 			strncpy(imagedev, "/dev/", 6);
 			strncat(imagedev, cmdline, (cmdline_ptr - cmdline));
 		}
-		if ( strncmp(cmdline, "CDEV=", 4) == 0 ) {
+		if ( strncmp(cmdline, "CDEV=", 5) == 0 ) {
 
 			cmdline_ptr = cmdline;
-			cmdline += 4; /* skip past DEV= */
+			cmdline += 5; /* skip past DEV= */
 			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
 				cmdline_ptr++;
 			}
