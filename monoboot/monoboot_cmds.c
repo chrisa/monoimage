@@ -52,8 +52,7 @@ void add_section(cfg_t *cfg, char *name, char *title) {
     memset(val->section, 0, sizeof(cfg_t));
     val->section->opts = cfg_dupopts(opt->subopts);
     val->section->flags = cfg->flags;
-    val->section->flags |= CFGF_ALLOCATED;
-    val->section->filename = cfg->filename;
+    val->section->filename = cfg->filename ? strdup(cfg->filename) : 0;
     val->section->line = cfg->line;
     val->section->errfunc = cfg->errfunc;
     val->section->name = strdup(opt->name);
