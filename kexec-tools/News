@@ -1,0 +1,14 @@
+* 1.8
+  - Fixed bug where ramdisk wasn't loaded when specified
+  - Memory information is now read from /proc/iomem.
+    Information that is not needed is ignored.
+* 1.7
+  - Update to new tenative syscall number....
+* 1.6
+  - Redo all of the command line arguments.
+  - Use the 32bit kernel entry point.
+  - Work around a failure to clear %cr4.
+* 1.5
+  - Port to a new kernel interface (Hopefully the final one).
+  - Start working on setting up legacy hardware
+  - Add --load and --exec options so the parts can be done at different times.

@@ -1,0 +1,60 @@
+# Hey Emacs this is a -*- makefile-*-
+VERSION="1.8"
+DATE="01 December 2002"
+CPPFLAGS:= -I./util_lib/include -DVERSION='$(VERSION)' -DRELEASE_DATE='$(DATE)'
+CFLAGS:=-Wall -g -O2 -fno-strict-aliasing $(CPPFLAGS)
+
+PREFIX:=$(OBJDIR)/build
+SBINDIR=$(PREFIX)/sbin
+BINDIR=$(PREFIX)/bin
+MAN1DIR=$(PREFIX)/man/man1
+MAN2DIR=$(PREFIX)/man/man2
+MAN3DIR=$(PREFIX)/man/man3
+MAN4DIR=$(PREFIX)/man/man4
+MAN5DIR=$(PREFIX)/man/man5
+MAN6DIR=$(PREFIX)/man/man6
+MAN7DIR=$(PREFIX)/man/man7
+MAN8DIR=$(PREFIX)/man/man8
+MAN9DIR=$(PREFIX)/man/man9
+
+MAN_PAGES:=
+BINARIES:=$(SBINDIR)/kexec $(BINDIR)/kexec_test
+
+TARGETS:=$(BINARIES) $(MAN_PAGES)
+
+all: $(TARGETS)
+
+echo::
+	@echo CC=$(CC)
+	@echo AR=$(AR)
+	@echo LD=$(LD)
+	@echo X86_CC=$(X86_CC)
+	@echo X86_AR=$(X86_AR)
+	@echo X86_LD=$(X86_LD)
+	@echo ALPHA_CC=$(ALPHA_CC)
+	@echo ALPHA_AR=$(ALPHA_AR)
+	@echo ALPHA_LD=$(ALPHA_LD)
+
+clean:
+	find $(OBJDIR) ! -name '*.d' -type f | xargs rm -f
+
+distclean: clean
+	rm -rf $(OBJDIR)
+	find . -type f -name '*~' | xargs rm -f
+
+
+#
+# Utility function library
+#
+include util_lib/Makefile
+
+#
+# kexec_elf32_x86 (linux booting linux)
+#
+include kexec/Makefile
+
+#
+# kexec_test (test program)
+#
+include kexec_test/Makefile
+
