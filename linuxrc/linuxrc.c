@@ -18,6 +18,7 @@
 #define IMAGES_DEV "/dev/hda1"
 #define FS_DEV "/dev/hda1"
 #define FS_IMG "failsafe.img"
+#define BUF_MAX 256
 
 /*
  *
@@ -134,22 +135,17 @@ void die_halt (void)
 int main (int argc, char **argv)
 {
 	FILE *file;
-	char *cmdline;
+	char *start_ptr, *end_ptr;
 	char *cmdline_ptr;
-	char *imagefile;
-	char *imagedev;
-	char *configdev;
+	char imagefile[BUF_MAX];
+	char configdev[BUF_MAX];
+	char imagedev[BUF_MAX];
+	char cmdline[BUF_MAX];
 	int offset;
 	struct monoimage_header bi_header;
 	struct stat s;
 
 	fprintf(stderr, "monoimage linuxrc starting...\n");
-
-	/* buffers */
-	cmdline   = (char *)malloc(256 * sizeof(char));
-	imagefile = (char *)malloc(256 * sizeof(char));
-	imagedev  = (char *)malloc(256 * sizeof(char));
-	configdev = (char *)malloc(256 * sizeof(char));
 
 	/* mount proc */
 	if ( mount("proc", "/proc", "proc", 0, NULL) < 0 ) {
@@ -164,50 +160,57 @@ int main (int argc, char **argv)
 			strerror(errno));
 		die_reboot();
 	}
-	if ( fgets(cmdline, 256, file) == NULL ) {
+	if ( fgets(cmdline, BUF_MAX, file) == NULL ) {
 		fprintf(stderr, "read /proc/cmdline: %s\n",
 			strerror(errno));
 		die_reboot();
 	}
 
-	/* parse out actual image filename and images device */
-	while ( strncmp(cmdline, "\n", 1) != 0 ) {
+	/* parse out actual image filename and image/config devices */
+	cmdline_ptr = cmdline;
 
-		if ( strncmp(cmdline, "IMAGE=", 6) == 0 ) {
-
-			cmdline_ptr = cmdline;
-			cmdline += 6; /* skip past IMAGE= */
-			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
-				cmdline_ptr++;
-			}
-			strncpy(imagefile, "/images/", 9);
-			strncat(imagefile, cmdline, (cmdline_ptr - cmdline));
-		}
-
-		if ( strncmp(cmdline, "IDEV=", 5) == 0 ) {
-
-			cmdline_ptr = cmdline;
-			cmdline += 5; /* skip past DEV= */
-			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
-				cmdline_ptr++;
-			}
-			strncpy(imagedev, "/dev/", 6);
-			strncat(imagedev, cmdline, (cmdline_ptr - cmdline));
-		}
-		if ( strncmp(cmdline, "CDEV=", 5) == 0 ) {
-
-			cmdline_ptr = cmdline;
-			cmdline += 5; /* skip past DEV= */
-			while ( strncmp(cmdline_ptr, " ", 1) != 0 && strncmp(cmdline_ptr, "\n", 1) != 0) {
-				cmdline_ptr++;
-			}
-			strncpy(configdev, "/dev/", 6);
-			strncat(configdev, cmdline, (cmdline_ptr - cmdline));
-		}
-
-		cmdline++;
+	start_ptr= strstr(cmdline_ptr, "IMAGE=");
+	if (start_ptr) {
+	    end_ptr = strstr(start_ptr, " ");
+	    if (end_ptr == '\0') {
+		end_ptr = strstr(start_ptr, "\n");
+	    }
+	    start_ptr += 6; /* skip past IMAGE= */
+	    strncpy(imagefile, "/images/", 9);
+	    strncat(imagefile, start_ptr, (end_ptr - start_ptr));
+	} else {
+	    fprintf(stderr, "no IMAGE in cmdline\n");
+	    die_reboot();
 	}
 
+	start_ptr= strstr(cmdline_ptr, "IDEV=");
+	if (start_ptr) {
+	    end_ptr = strstr(start_ptr, " ");
+	    if (end_ptr == '\0') {
+		end_ptr = strstr(start_ptr, "\n");
+	    }
+	    start_ptr += 5; /* skip past IDEV= */
+	    strncpy(imagedev, "/dev/", 6);
+	    strncat(imagedev, start_ptr, (end_ptr - start_ptr));
+	} else {
+	    fprintf(stderr, "no IDEV in cmdline\n");
+	    die_reboot();
+	}
+
+	start_ptr= strstr(cmdline_ptr, "CDEV=");
+	if (start_ptr) {
+	    end_ptr = strstr(start_ptr, " ");
+	    if (end_ptr == '\0') {
+		end_ptr = strstr(start_ptr, "\n");
+	    }
+	    start_ptr += 5; /* skip past CDEV= */
+	    strncpy(configdev, "/dev/", 6);
+	    strncat(configdev, start_ptr, (end_ptr - start_ptr));
+	} else {
+	    fprintf(stderr, "no CDEV in cmdline\n");
+	    die_reboot();
+	}
+	    
 	fclose(file);
 
 	fprintf(stderr, "image file: %s\n", imagefile);
