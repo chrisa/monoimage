@@ -1,7 +1,7 @@
 # $Id$ 
 
 MB_CFLAGS += -g -Wall -pedantic -std=c99
-MB_LIBS   += -lconfuse -lreadline
+MB_LIBS   += -lconfuse -lncurses -lreadline
 
 CFLAGS += $(MB_CFLAGS)
 LDLIBS += $(MB_LIBS)
