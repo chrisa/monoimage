@@ -1,18 +1,14 @@
 #!/bin/sh -e
-T=/tmp/make-rootfs.$$
-F=/tmp/make-rootfs-image.$$
-M=/tmp/make-rootfs-mount.$$
+T=tmp
+F=../rootfs.img
+M=mnt
 
 DIRS="sbin lib initrd dev"
 DEVS="std console"
 LIBS="libncurses.so.5 libdl.so.2 libc.so.6 ld-linux.so.2"
 
-if [ -e $T -o -e F -o -e $M ]
-then
-	echo wail! temporary foo exists
-	exit 1
-fi
-
+rm -Rf $T
+rm -Rf $M
 mkdir $T
 mkdir $M
 
@@ -39,6 +35,7 @@ do
 	echo makedev $D
 	./MAKEDEV $D
 done
+cd ../..
 rm $T/dev/MAKEDEV
 
 echo making loopback file
