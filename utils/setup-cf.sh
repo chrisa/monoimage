@@ -51,6 +51,7 @@ p
 
 +32M
 n
+p
 3
 
 
@@ -105,7 +106,7 @@ _copy_fs()
     echo copying root fs from ${SERVER}:$1
     tftp -g -r $1 -l /var/tmp/$1 ${SERVER}
     cd /mnt
-    tar zxf /var/tmp/$1
+    busybox tar zxf /var/tmp/$1
     cd /
 }
 
@@ -124,7 +125,7 @@ timeout 1
 
 title=kexec
 root (hd0,0)
-kernel /boot/${KERNEL} console=ttyS0,19200n8 rw root=/dev/hda1
+kernel /boot/${KERNEL} console=ttyS0,19200n8 rw root=/dev/hda1 ide=nodma
 EOM
 
     # grub-install should be able to do this cleanly
