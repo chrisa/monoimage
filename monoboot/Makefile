@@ -6,9 +6,10 @@ LDLIBS += $(MB_LIBS)
 
 all:		monoboot
 
-monoboot:	monoboot.c monoboot.h
+monoboot: monoboot.c monoboot.h monoboot_cmds.c monoboot_cmds.h
 	gcc -c $(CFLAGS) monoboot.c
-	gcc -o monoboot $(LDLIBS) monoboot.o
+	gcc -c $(CFLAGS) monoboot_cmds.c
+	gcc -o monoboot $(LDLIBS) monoboot.o monoboot_cmds.o
 
 clean: 
 	rm -f monoboot *.o
