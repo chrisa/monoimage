@@ -83,26 +83,54 @@ int check_image_tag(cfg_t *cfg, char *tag) {
 
 char *get_running_config(cfg_t *cfg) {
     char config[MB_CONFIG_MAX];
-    int images, n;
+    char buf[MB_CONFIG_MAX];
+    int sec_count, n;
 
-    sprintf(config, "\nversion = %ld\nbootonce = \"%s\"\nfallback = \"%s\"\nlastboot = \"%s\"\ntryonce = \"%s\"\nlasttry = \"%s\"\n\nbootimage = \"%s\"\n", 
+    sprintf(config, "version = %ld\n\nbootonce = %s\ntryonce = %s\n\nfallback = %s\ndefault = %s\n\nlasttry = %s\nlastboot = %s\n\nbootimage = %s\n", 
 	    cfg_getint(cfg,"version"), 
 	    cfg_getstr(cfg,"bootonce"),
-	    cfg_getstr(cfg,"fallback"),
-	    cfg_getstr(cfg,"lastboot"),
 	    cfg_getstr(cfg,"tryonce"),
+	    cfg_getstr(cfg,"fallback"),
+	    cfg_getstr(cfg,"default"),
 	    cfg_getstr(cfg,"lasttry"),
+	    cfg_getstr(cfg,"lastboot"),
 	    cfg_getstr(cfg,"bootimage"));
     
-    images = cfg_size(cfg, "image");
-    for (n = 0; n < images; n++) {
+    sec_count = cfg_size(cfg, "image");
+    for (n = 0; n < sec_count; n++) {
 	cfg_t *image = cfg_getnsec(cfg, "image", n);
-	char buf[256];
-	sprintf(buf, "\nimage %s {\n  filename = \"%s\"\n}\n", 
+	sprintf(buf, "\nimage %s {\n  filename = %s\n}\n", 
 		cfg_title(image), 
 		cfg_getstr(image, "filename"));
 	strncat(config, buf, strlen(buf));
     }
+
+    sec_count = cfg_size(cfg, "network");
+    for (n = 0; n < sec_count; n++) {
+	cfg_t *network = cfg_getnsec(cfg, "network", n);
+	sprintf(buf, "\nnetwork %s {\n  address = %s\n  netmask = %s\n  gateway = %s\n}\n\n", 
+		cfg_title(network), 
+		cfg_getstr(network, "address"),
+		cfg_getstr(network, "netmask"),
+		cfg_getstr(network, "gateway"));
+	strncat(config, buf, strlen(buf));
+    }
+
+    strcat(config, "line = { ");
+    sec_count = cfg_size(cfg, "line");
+    for (n = 0; n < sec_count; n++) {
+	if (n == (sec_count - 1)) {
+	    sprintf(buf, "%s", cfg_getnstr(cfg, "line", n));
+	} else {
+	    sprintf(buf, "%s, ", cfg_getnstr(cfg, "line", n));
+	}
+	strncat(config, buf, strlen(buf));
+    }
+    strcat(config, " }\n\n");
+    
+    sprintf(buf, "password = %s\n\n", cfg_getstr(cfg, "password"));
+    strncat(config, buf, strlen(buf));
+    
     return strdup(config);
 }
 
