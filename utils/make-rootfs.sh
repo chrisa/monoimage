@@ -35,6 +35,7 @@ echo making devices
 cp /dev/MAKEDEV $T/dev/MAKEDEV
 cd $T/dev
 for D in $DEVS
+do
 	echo makedev $D
 	./MAKEDEV $D
 done
