@@ -13,3 +13,4 @@ void save_config(cfg_t *cfg);
 int check_last(cfg_t *cfg);
 void update_config_for_fallback(cfg_t *cfg);
 void boot_image(cfg_t *cfg);
+void mb_interact(cfg_t *cfg);
