@@ -19,6 +19,8 @@
 
 #include "monoimage.h"
 
+#define IMAGES_DEV "hda1"
+
 int monoimage_probe(FILE *file)
 {
 	struct monoimage_header header;
@@ -133,9 +135,9 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	image = argv[optind];
 	  
 	if (command_line_append) {
-		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s", command_line_append, image);
+		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s DEV=%s", command_line_append, image, IMAGES_DEV);
 	} else {
-		sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s", image);
+		sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s DEV=%s", image, IMAGES_DEV);
 	}
 		
 	fprintf(stderr, "%s\n", command_line);
