@@ -67,7 +67,10 @@ static char *get_cmdline_var (char *cmdline, char *var) {
     return value;
 }
 
-int parse_cmdline(char *imagefile, char *configdev)
+int parse_cmdline(char *imagefile, 
+		  char *configdev,
+		  char *configpath
+		  )
 {
     FILE *file;
     char *value;
@@ -93,6 +96,13 @@ int parse_cmdline(char *imagefile, char *configdev)
 	fprintf(stderr, "no IMAGE in cmdline\n");
 	return MB_CMDLINE_PARSE;
     } 
+
+    if ((value = get_cmdline_var(cmdline, "CONFIG")) != NULL) {
+	strcpy(configpath, value);
+    } else {
+	fprintf(stderr, "no CONFIG in cmdline\n");
+	return MB_CMDLINE_PARSE;
+    } 
     
     if ((value = get_cmdline_var(cmdline, "CDEV")) != NULL) {
 	strcpy(configdev, "/dev/");
@@ -114,11 +124,12 @@ int main (void)
     cfg_t *cfg;
     char image[MB_PATH_MAX];
     char cdev[MB_PATH_MAX];
+    char cpath[MB_PATH_MAX];
     char *filename;
     int images, n;
 
     /* find the config dev from the kernel cmdline */
-    if ((n = parse_cmdline(image, cdev)) != 0) {
+    if ((n = parse_cmdline(image, cdev, cpath)) != 0) {
 	if (n == MB_CMDLINE_NOPROC) {
 	    fprintf(stderr, "[mi] couldn't read from /proc/cmdline\n");
 	    exit(1);
@@ -126,12 +137,13 @@ int main (void)
 	    fprintf(stderr, "[mi] failed to parse cmdline\n");
 	    exit(1);
 	} else {
-	    fprintf(stderr, "[mi] unknown error finding config dev / image\n");
+	    fprintf(stderr, "[mi] unknown error finding config dev, path / image\n");
 	    exit(1);
 	}
     }
-    fprintf(stderr, "[mi] config dev: %s\n", cdev);
-    fprintf(stderr, "[mi] image file: %s\n", image);
+    fprintf(stderr, "[mi] config dev:  %s\n", cdev);
+    fprintf(stderr, "[mi] config path: %s\n", cpath);
+    fprintf(stderr, "[mi] image file:  %s\n", image);
     
     /* mount cdev on /config */
     if ( mount (cdev, "/config", "ext3", 0, NULL) < 0 ) {
@@ -158,6 +170,14 @@ int main (void)
     /* write back */
     save_config(cfg);
     drop_config(cfg);
+
+    /* mount a ramfs on /etc */
+    if (do_exec(MOUNT_BINARY, "mount", "-t", "tmpfs", "tmpfs", "/etc", 0) != 0) {
+	MB_DEBUG("[mb] mount /etc failed\n");
+    }
+
+    /* clone cpath's contents into /etc */
+    
     
     /* done */
     exit(0);

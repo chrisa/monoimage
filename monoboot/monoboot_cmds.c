@@ -209,6 +209,7 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     char *image_tag;
     char image_file[MB_PATH_MAX];
     char image_path[MB_PATH_MAX];
+    char config_path[MB_PATH_MAX];
     struct stat sbuf;
     char *console;
     char kexec_cmdline[MB_CMDLINE_MAX];
@@ -261,6 +262,14 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     }
     MB_DEBUG("[mb] image path: %s\n", image_path);
 
+    /* check the config tag is there */
+    sprintf(config_path, "%s/%s", MB_PATH_CONFIG, image_tag);
+    if (stat(config_path, &sbuf) < 0) {
+	MB_DEBUG("[mb] cmd_boot: couldn't stat %s: %s", config_path, strerror(errno));
+	return -1;
+    }
+    MB_DEBUG("[mb] config path: %s\n", config_path);
+
     /* get /proc mounted for kexec's benefit */
     if (check_mounted("/proc") != MB_CM_YES) {
 	if (do_exec(MOUNT_BINARY, "mount", "-t", "proc", "proc", "/proc", 0) != 0) {
@@ -271,7 +280,7 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     /* find out what console we're currently using, assume that it'll
        do for the new kernel too */
     console = get_kernel_console();
-    sprintf(kexec_cmdline, "--command-line=%s ide=nodma", console);
+    sprintf(kexec_cmdline, "--command-line=%s ide=nodma CONFIG=%s", console, config_path);
     
     /* fork/exec the kexec -l first */
     if (do_exec(KEXEC_BINARY, "kexec", kexec_cmdline, "-l", image_path, 0) != 0) {
