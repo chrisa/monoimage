@@ -60,3 +60,4 @@
 ./rootfs/make-rootfs.sh
 ./rootfs/Makefile
 ./utils/makeimage.pl
+./utils/setup-cf.sh
