@@ -232,7 +232,7 @@ int main (int argc, char **argv)
 		 * (umount /images first..)
 		 */
 
-		strncpy(imagefile, "/images/", 9);
+		strcpy(imagefile, "/images/");
 		strcat(imagefile, FS_IMG);
 
 		if ( umount2("/images",0) != 0) {
