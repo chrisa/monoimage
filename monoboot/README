@@ -34,10 +34,6 @@ it as 'bootonce', and if it fails, you'll be back to 'default', not
 services you should be if you're in 'fallback', and it'd take an extra
 reboot to get back without bootonce.
 
-The param 'bootimage' is what will be booted if tryonce is no. It gets
-populated with an image tag when the system decides which image to
-boot.
-
 monoboot.c is installed as 'mbsh' and 'monoboot'. Invoked as mbsh it
 gives you a command line, where you can do file transfers, amend
 mb.conf etc. Invoked as monoboot it goes straight into 'boot_image',

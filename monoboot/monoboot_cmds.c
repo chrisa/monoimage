@@ -157,7 +157,7 @@ char *get_running_config(cfg_t *cfg) {
     char buf[MB_CONFIG_MAX];
     int sec_count, n;
 
-    sprintf(config, "version = %ld\ndelay = %ld\n\nbootonce = %s\ntryonce = %s\n\nfallback = %s\ndefault = %s\n\nlasttry = %s\nlastboot = %s\n\nbootimage = %s\n", 
+    sprintf(config, "version = %ld\ndelay = %ld\n\nbootonce = %s\ntryonce = %s\n\nfallback = %s\ndefault = %s\n\nlasttry = %s\nlastboot = %s\n", 
 	    cfg_getint(cfg,"version"), 
 	    cfg_getint(cfg,"delay"), 
 	    cfg_getstr(cfg,"bootonce"),
@@ -165,8 +165,7 @@ char *get_running_config(cfg_t *cfg) {
 	    cfg_getstr(cfg,"fallback"),
 	    cfg_getstr(cfg,"default"),
 	    cfg_getstr(cfg,"lasttry"),
-	    cfg_getstr(cfg,"lastboot"),
-	    cfg_getstr(cfg,"bootimage"));
+	    cfg_getstr(cfg,"lastboot"));
     
     sec_count = cfg_size(cfg, "image");
     for (n = 0; n < sec_count; n++) {
