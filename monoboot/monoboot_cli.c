@@ -194,6 +194,7 @@ void set_mb_image(char *image) {
     if (mb_image == NULL)
 	mb_image = (char *)malloc(sizeof(char) * MB_IMAGE_MAX);
     strncpy(mb_image, image, strlen(image));
+    mb_image[strlen(image)] = '\0';
 }
 char *get_mb_image(void) {
     return mb_image;

@@ -1,4 +1,5 @@
 #define C99_SOURCE
+#define _GNU_SOURCE
 #include <stdio.h>
 #include <errno.h>
 #include <sys/types.h>
@@ -12,6 +13,53 @@
 #include "monoboot_cli.h"
 
 /* $Id$ */
+
+/*
+ * these two functions are ripped off from confuse.c ....
+ * for some reason there's no public function to add a 
+ * section to the in-memory config
+ * ...
+ */
+  
+static cfg_opt_t *cfg_dupopts(cfg_opt_t *opts)
+{
+	int n;
+	cfg_opt_t *dupopts;
+
+	for(n = 0; opts[n].name; n++)
+		/* do nothing */ ;
+	dupopts = (cfg_opt_t *)malloc(++n * sizeof(cfg_opt_t));
+	memcpy(dupopts, opts, n * sizeof(cfg_opt_t));
+	return dupopts;
+}
+
+void add_image(cfg_t *cfg, char *image) {
+    cfg_opt_t *opt;
+    cfg_value_t *val;
+    int i;
+    
+    for (i = 0; cfg->opts[i].type != CFGT_NONE; i++) {
+	if (strncmp(cfg->opts[i].name, "image", 5) == 0) {
+	    opt = &cfg->opts[i];
+	}
+    }
+    opt->values = (cfg_value_t **)realloc(opt->values, (opt->nvalues+1) * sizeof(cfg_value_t *));
+    opt->values[opt->nvalues] = (cfg_value_t *)malloc(sizeof(cfg_value_t));
+    memset(opt->values[opt->nvalues], 0, sizeof(cfg_value_t));
+    val = opt->values[opt->nvalues++];
+    
+    cfg_free(val->section);
+    val->section = (cfg_t *)malloc(sizeof(cfg_t));
+    memset(val->section, 0, sizeof(cfg_t));
+    val->section->opts = cfg_dupopts(opt->subopts);
+    val->section->flags = cfg->flags;
+    val->section->flags |= CFGF_ALLOCATED;
+    val->section->filename = cfg->filename;
+    val->section->line = cfg->line;
+    val->section->errfunc = cfg->errfunc;
+    val->section->name = strdup(opt->name);
+    val->section->title = strndup(image, strlen(image));
+}
 
 int check_image_tag(cfg_t *cfg, char *tag) { 
     int n, m;
@@ -166,7 +214,7 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
     char image_name[MB_PROMPT_MAX];
     char *current_image;
     cfg_t *image;
-    int images, n;
+    int images, n, m;
 
     if (get_mb_mode() == MB_MODE_EXEC) {
 	/* set config mode */
@@ -230,14 +278,47 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
 	    if (cmdline[1]) {
 		MB_DEBUG("updating filename to %s for image %s\n", cmdline[1], current_image);
 		images = cfg_size(cfg, "image");
+		m = 0;
 		for (n = 0; n < images; n++) {
 		    image = cfg_getnsec(cfg, "image", n);
 		    if (strncmp(cfg_title(image), current_image, strlen(cfg_title(image))) == 0) {
 			cfg_setstr(image, "filename", cmdline[1]);
+			m++;
 		    }
 		}
-		printf("%s -> %s [ok]\n", "filename", cmdline[1]);
+		if (m) {
+		    printf("%s/filename -> %s [ok]\n", current_image, cmdline[1]);
+		} else {
+		    /* new image section */
+		    cfg_opt_t *new_image = malloc(sizeof(cfg_opt_t));
+		    if (new_image == NULL) {
+			MB_DEBUG("malloc failed: %s\n", strerror(errno));
+			return;
+		    }
+		    
+		    add_image(cfg, current_image);
+		    printf("new image %s added [ok]\n", current_image);
+		    
+		    images = cfg_size(cfg, "image");
+		    m = 0;
+		    for (n = 0; n < images; n++) {
+			image = cfg_getnsec(cfg, "image", n);
+			if (strncmp(cfg_title(image), current_image, strlen(cfg_title(image))) == 0) {
+			    cfg_setstr(image, "filename", cmdline[1]);
+			    m++;
+			}
+		    }
+		    if (m) {
+			printf("%s/filename -> %s [ok]\n", current_image, cmdline[1]);
+		    } else {
+			MB_DEBUG("set filename failed\n");
+		    }
+		}
 	    }
 	}
     }    
 }
+
+    
+
+    
