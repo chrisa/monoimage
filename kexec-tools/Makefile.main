@@ -42,6 +42,9 @@ distclean: clean
 	rm -rf $(OBJDIR)
 	find . -type f -name '*~' | xargs rm -f
 
+install: objdir/build/sbin/kexec
+	cp objdir/build/sbin/kexec $(DESTDIR)/usr/sbin/kexec
+
 
 #
 # Utility function library

@@ -31,6 +31,10 @@ clean:
 	$(MAKE) -C kexec-tools clean
 	$(MAKE) -C gpio clean
 
+install:
+	$(MAKE) -C monoboot install
+	$(MAKE) -C kexec-tools install
+
 release:
 	mkdir monoimage-tools-$(VERSION)
 	tar cTf MANIFEST - | (cd monoimage-tools-$(VERSION) && tar xvf -)

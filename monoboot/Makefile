@@ -24,4 +24,8 @@ mbsh: monoboot
 clean: 
 	rm -f monoboot mbsh *.o
 
+install:
+	cp monoboot $(DESTDIR)/bin
+	ln -f $(DESTDIR)/bin/monoboot $(DESTDIR)/bin/mbsh
+
 .PHONY: clean
