@@ -1,4 +1,5 @@
 #define _GNU_SOURCE
+#define _C99_SOURCE
 #include <sys/mount.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -73,7 +74,7 @@ int set_loop(const char *device, const char *file, int offset)
         }
 
         memset(&loopinfo64, 0, sizeof(loopinfo64));
-        strncpy(loopinfo64.lo_file_name, file, LO_NAME_SIZE);
+        strncpy((char *)loopinfo64.lo_file_name, file, LO_NAME_SIZE);
         loopinfo64.lo_offset = offset;
         loopinfo64.lo_encrypt_key_size = 0;
 
@@ -156,7 +157,7 @@ int main (int argc, char **argv)
 	}
 
 	/* open /proc/cmdline, read image filename */
-	if ( (file = fopen("/proc/cmdline", "r")) < 0 ) {
+	if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
 		fprintf(stderr, "/proc/cmdline: open: %s\n",
 			strerror(errno));
 		die_reboot();
@@ -241,7 +242,7 @@ int main (int argc, char **argv)
 	}
 
 	/* read header from /images/%s, get rootfs offset */
-	if ( (file = fopen(imagefile, "r")) < 0 ) {
+	if ( (file = fopen(imagefile, "r")) == NULL ) {
 		fprintf(stderr, "%s: open: %s\n",
 			imagefile,
 			strerror(errno));
