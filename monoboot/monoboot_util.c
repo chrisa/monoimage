@@ -67,3 +67,35 @@ char *get_kernel_console(void)
 
     return p;
 }
+
+/*
+ * check_mounted
+ *
+ * read /proc/mounts and search it for mountpoint
+ *
+ */
+
+int check_mounted (char* mountpoint)
+{
+    FILE *f;
+    char readbuf[MB_CM_MAX];
+
+    /* open file in text mode */
+    if (!(f = fopen("/proc/mounts", "r"))) {
+	MB_DEBUG("[mb] check_mounted: opening /proc/mounts failed: %s\n", strerror(errno));
+	return MB_CM_FAIL;
+    }
+
+    while (fgets(readbuf, MB_CM_MAX, f)) {
+	if (strstr(readbuf, mountpoint)) {
+	    /* success */
+	    fclose(f);
+	    return MB_CM_YES;
+	}
+    }
+
+    /* reached end, no match */
+    fclose(f);
+    return MB_CM_NO;
+}
+

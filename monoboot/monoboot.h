@@ -10,6 +10,11 @@
 #define MB_PATH_MAX     200
 #define MB_CMDLINE_MAX  255
 
+#define MB_CM_MAX	32
+#define MB_CM_YES	0
+#define MB_CM_NO	1
+#define MB_CM_FAIL	2
+
 /* paths */
 
 #define MB_PATH_CONFIG  "/config"
@@ -90,3 +95,4 @@ int cmd_write(cfg_t *, char **);
 
 /* util functions */
 char *get_kernel_console(void);
+int check_mounted(char*);
