@@ -19,6 +19,8 @@ char mb_prompt[MB_PROMPT_MAX];
 int mb_mode;
 /* the current image being edited */
 char *mb_image;
+/* the current network being edited */
+char *mb_network;
 
 /* tokenise a command line, return a null terminated list
    of char *s */
@@ -144,7 +146,9 @@ void mb_interact(cfg_t *cfg) {
 		cmd_exit(cfg, cmdline);
 	    }
 
-	    if (get_mb_mode() == MB_MODE_CONF || get_mb_mode() == MB_MODE_CONF_IMAGE) {
+	    if (get_mb_mode() == MB_MODE_CONF || 
+		get_mb_mode() == MB_MODE_CONF_IMAGE ||
+		get_mb_mode() == MB_MODE_CONF_NET ) {
 
 		/* hand all conf mode commands to cmd_conf */
 		cmd_conf(cfg, cmdline);
@@ -203,4 +207,15 @@ void set_mb_image(char *image) {
 }
 char *get_mb_image(void) {
     return mb_image;
+}
+
+/* cli current-network get/set */
+void set_mb_network(char *network) {
+    if (mb_network == NULL)
+	mb_network = (char *)malloc(sizeof(char) * MB_NETWORK_MAX);
+    strncpy(mb_network, network, strlen(network));
+    mb_network[strlen(network)] = '\0';
+}
+char *get_mb_network(void) {
+    return mb_network;
 }
