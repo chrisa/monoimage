@@ -20,6 +20,7 @@
 
 #include <stdio.h>
 #include <errno.h>
+#include <ctype.h>
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <stdlib.h>
@@ -73,9 +74,70 @@ int main(int argc, char **argv) {
 	mb_interact(cfg);
     } else {
 	MB_DEBUG("[mb] main: booting image\n");
-	cmd_boot(cfg);
+	cmd_boot(cfg, NULL);
     }
     return 0;
+}
+
+/* tokenise a command line, return a null terminated list
+   of char *s */
+
+char **split_cmdline (char *string) {
+    char *cp;
+    char **vec = NULL;
+    int i = 0;
+
+    if (string == NULL)
+	return NULL;
+    
+    cp = string;
+
+    /* Skip white spaces. */
+    while (isspace ((int) *cp) && *cp != '\0')
+	cp++;
+    
+    /* Return if there is only white spaces */
+    if (*cp == '\0')
+	return NULL;
+    
+    /* skip a commented line */
+    if (*cp == '!' || *cp == '#')
+	return NULL;
+    
+    /* Copy each command piece and set into vector. */
+    while (1) {
+
+	if (*cp == '\0') {
+	    vec = (char **)realloc(vec, (i + 1) * sizeof(char *));
+	    vec[i] = NULL;
+	    return vec;
+	}
+
+	vec = (char **)realloc(vec, (i + 1) * sizeof(char *));
+	if (vec == NULL) {
+	    printf("realloc failed: %s\n", strerror(errno));
+	    return NULL;
+	}
+
+	vec[i] = cp;
+	i++;
+
+	while (!(isspace ((int) *cp) || *cp == '\r' || *cp == '\n') &&
+	       *cp != '\0')
+	    cp++;
+	
+	while ((isspace ((int) *cp) || *cp == '\n' || *cp == '\r') &&
+	       *cp != '\0') {
+	    *cp = '\0';
+	    cp++;
+	}
+    }
+}
+
+/* free a list allocated for a split cmdline */
+
+void cmdline_free(char **vec) {
+    free(vec);
 }
 
 /* 
@@ -117,12 +179,34 @@ void init_readline (void) {
  * they either reboot or start a kernel 
  */
 void mb_interact(cfg_t *cfg) {
+    char **cmdline;
     init_readline();
+    
 
     while ( (line_read = rl_gets()) != NULL) {
-	if ( strncmp(line_read, "boot", 4) == 0 ) {
-	    cmd_boot(cfg);
+	cmdline = split_cmdline(line_read);
+
+	/* == BOOT == */
+	if ( strncmp(cmdline[0], "boot", 4) == 0 ) {
+	    cmd_boot(cfg, cmdline);
 	}
+
+	/* == SHOW == */
+	if ( strncmp(cmdline[0], "show", 4) == 0 ) {
+	    // cmd_show(cfg, cmdline);
+	}
+
+	/* == COPY == */
+	if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
+	    // cmd_copy(cfg, cmdline);
+	}
+
+	/* == CONF == */
+	if ( strncmp(cmdline[0], "conf", 4) == 0 ) {
+	    // cmd_conf(cfg, cmdline);
+	}
+
+	cmdline_free(cmdline);
     }
     MB_DEBUG("\n[mb] mb_interact: exiting mb_interact\n");
 }
@@ -138,10 +222,13 @@ cfg_t* load_config(char *file) {
     };
 
     static cfg_opt_t opts[] = {
-	CFG_INT("version", 0, CFGF_NONE),
-	CFG_STR("default", "none", CFGF_NONE),
+	CFG_INT("version",  0,      CFGF_NONE),
+	CFG_STR("default",  "none", CFGF_NONE),
+	CFG_STR("bootonce", "none", CFGF_NONE),
 	CFG_STR("fallback", "none", CFGF_NONE),
-	CFG_STR("last", "none", CFGF_NONE),
+	CFG_STR("lastboot", "none", CFGF_NONE),
+	CFG_STR("lasttry",  "none", CFGF_NONE),
+	CFG_STR("tryonce",  "none", CFGF_NONE),
 	CFG_SEC("image", image_opts, CFGF_MULTI | CFGF_TITLE),
 	CFG_END()
     };
@@ -171,7 +258,8 @@ void show_config(cfg_t *cfg) {
 	MB_DEBUG("[mb] show_config: image %s has filename %s\n", cfg_title(image), cfg_getstr(image, "filename"));
     }
 
-    MB_DEBUG("[mb] show_config: last image is %s\n", cfg_getstr(cfg, "last"));
+    MB_DEBUG("[mb] show_config: last image tried is %s\n", cfg_getstr(cfg, "lasttry"));
+    MB_DEBUG("[mb] show_config: last image booted is %s\n", cfg_getstr(cfg, "lastboot"));
     MB_DEBUG("[mb] show_config: default image is %s\n", cfg_getstr(cfg, "default"));
     MB_DEBUG("[mb] show_config: fallback image is %s\n", cfg_getstr(cfg, "fallback"));
 
@@ -180,14 +268,14 @@ void show_config(cfg_t *cfg) {
 
 /* examine last boot's success */
 int check_last(cfg_t *cfg) {
-    if (!strcmp(cfg_getstr(cfg, "last"), cfg_getstr(cfg, "default"))) {
+    if (!strcmp(cfg_getstr(cfg, "lastboot"), cfg_getstr(cfg, "default"))) {
     	MB_DEBUG("[mb] check_last: last boot was from default image, good\n");
 
 	/* check that it actually booted ok */
 	/* if it didn't, return FALSE to indicate we should change to fallback */
 
 	return 1;
-    } else if (!strcmp(cfg_getstr(cfg, "last"), cfg_getstr(cfg, "fallback"))) {
+    } else if (!strcmp(cfg_getstr(cfg, "lastboot"), cfg_getstr(cfg, "fallback"))) {
     	MB_DEBUG("[mb] check_last: last boot was from fallback image, hmm\n");
 
 	/* having booted from fallback, we're up for trying default again */
@@ -243,3 +331,4 @@ void save_config(cfg_t *cfg) {
 void drop_config(cfg_t *cfg) {
     cfg_free(cfg);
 }
+

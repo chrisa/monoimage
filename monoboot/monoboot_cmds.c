@@ -9,13 +9,13 @@
 #include <confuse.h>
 #include "monoboot.h"
 
-void cmd_boot(cfg_t *cfg) {
+void cmd_boot(cfg_t *cfg, char **cmdline) {
     
     pid_t pid;
     int n,images;
-    static char image_file[256];
+    char image_file[256];
   
-    cfg_setstr(cfg, "last", cfg_getstr(cfg, "default"));
+    cfg_setstr(cfg, "lasttry", cfg_getstr(cfg, "default"));
 
     images = cfg_size(cfg, "image");
     for (n = 0; n < images; n++) {
