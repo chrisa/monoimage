@@ -68,7 +68,8 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	int nr_segments;
 	long length;
 	size_t size;
-	char *command_line;
+	char command_line[256];
+	char *command_line_append;
 	const char *ramdisk;
 	unsigned long ramdisk_length;
 	int command_line_len;
@@ -104,7 +105,8 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	 */
 	debug = 0;
 	real_mode_entry = 0;
-	command_line = 0;
+	command_line[0] = '\0';
+	command_line_append = 0;
 	ramdisk = 0;
 	ramdisk_length = 0;
 	while((opt = getopt_long(argc, argv, short_options, options, 0)) != -1) {
@@ -123,18 +125,20 @@ int monoimage_load(FILE *file, int argc, char **argv,
 		case OPT_REAL_MODE:
 			real_mode_entry = 1;
 			break;
+		case OPT_APPEND:
+			command_line_append = optarg;
+			break;
 		}
 	}
 	image = argv[optind];
-	command_line = malloc(256*sizeof(char));
-	if (command_line == 0) {
-		fprintf(stderr, "command_line: malloc failed: %s\n",
-			strerror(errno));
-		return -1;
-	}
 	  
-	fprintf(stderr, "root=/dev/hda1 ro IMAGE=%s\n", image);
-	sprintf(command_line, "root=/dev/hda1 ro IMAGE=%s", image);
+	if (command_line_append) {
+		sprintf(command_line, "root=/dev/hda1 ro IMAGE=%s %s", image, command_line_append);
+	} else {
+		sprintf(command_line, "root=/dev/hda1 ro IMAGE=%s", image);
+	}
+		
+	fprintf(stderr, "%s\n", command_line);
 	command_line_len = 0;
 	if (command_line) {
 		command_line_len = strlen(command_line) +1;
