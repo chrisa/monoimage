@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
+#include <sys/statvfs.h>
+#include <dirent.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <string.h>
@@ -76,6 +78,64 @@ int check_image_tag(cfg_t *cfg, char *tag) {
 	return 1;
     } else {
 	return 0;
+    }
+}
+
+char *get_disk_ls(cfg_t *cfg) {
+    struct stat s;
+    struct statvfs sf;
+    struct dirent *f;
+    DIR *d;
+    char *listing;
+    char line[MB_PATH_MAX];
+    int i;
+
+    d = opendir("/images");
+    if (d == NULL) {
+	MB_DEBUG("[mb] get_disk_ls: failed to opendir /images: %s\n", strerror(errno));
+	return strdup("image volume not accessible\n");
+    }
+    chdir("/images");
+
+    listing = (char *)malloc(sizeof(char) * MB_PATH_MAX);
+    strcpy(listing, "\nSystem flash directory:\n    Length Name\n");
+    
+    i = 1;
+    while ((f = readdir(d))) {
+	if (strncmp(".", f->d_name, 1) != 0 && 
+	    strncmp("..", f->d_name, 2) != 0 &&
+	    strncmp("lost+found", f->d_name, 10) != 0) {
+	    i++;
+	    if (stat(f->d_name, &s) != 0) {
+		MB_DEBUG("[mb] get_disk_ls: stat failed: %s\n", strerror(errno));
+		return NULL;
+	    }
+	    listing = (char *)realloc(listing, sizeof(char) * MB_PATH_MAX * i); 
+	    if (!listing) {
+		MB_DEBUG("[mb] get_disk_ls: realloc failed: %s\n", strerror(errno));
+		return NULL;
+	    }
+	    sprintf(line, "%10d %s\n", (int)s.st_size, f->d_name);
+	    strncat(listing, line, strlen(line));
+	}
+    }
+    chdir("/");
+
+    if (statvfs("/images/.", &sf) != 0) {
+	MB_DEBUG("[mb] get_disk_ls: statfs failed: %s\n", strerror(errno));
+	return NULL;
+    }
+    listing = (char *)realloc(listing, sizeof(char) * MB_PATH_MAX * ++i);
+    sprintf(line, "[%ld bytes used, %ld available, %ld total]\n\n",
+	    ( sf.f_frsize * (sf.f_blocks - sf.f_bavail)),
+	    ( sf.f_frsize * sf.f_bavail ),
+	    ( sf.f_frsize * sf.f_blocks ));
+    strncat(listing, line, strlen(line));
+    
+    if (listing == NULL) {
+	return strdup("no files\n");
+    } else {
+	return listing;
     }
 }
 
@@ -234,8 +294,12 @@ int cmd_show(cfg_t *cfg, char **cmdline) {
 	if (strncmp(cmdline[1], "v", 1) == 0) {
 	    p = strdup("monoboot v0\n");
 	}
+	if (strncmp(cmdline[1], "d", 1) == 0) {
+	    p = get_disk_ls(cfg);
+	}
 	printf("%s", p);
     }
+    free(p);
     return 0;
 }
 

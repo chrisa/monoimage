@@ -28,4 +28,5 @@ struct monoimage_header {
 #define MI_FSTYPE_TARGZ    3
 #define MI_FSTYPE_CPIO     4
 #define MI_FSTYPE_CPIOGZ   5
-
+#define MI_FSTYPE_JFFS     6
+#define MI_FSTYPE_CRAMFS   7

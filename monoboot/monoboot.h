@@ -35,6 +35,14 @@
 #define MB_MODE_CONF_IMAGE 2
 #define MB_MODE_CONF_NET   3
 
+
+/* CLI errors */
+
+#define MB_ERR_ARGUMENTS   -1
+#define MB_ERR_NOSUCHTAG   -2
+#define MB_ERR_FILEMISSING -3
+#define MB_ERR_KEXECFAIL   -4
+
 #define MB_DEBUG(...) fprintf(stderr, __VA_ARGS__)
 
 /* main functions */
