@@ -8,8 +8,8 @@ LDLIBS += $(MB_LIBS)
 
 all: monoboot mbsh
 
-monoboot: monoboot.c monoboot.h monoboot_cmds.c monoboot_cmds.h \
-          monoboot_cli.c monoboot_cli.h monoboot_exec.c monoboot_exec.h
+monoboot: monoboot.c monoboot.h monoboot_cmds.c \
+          monoboot_cli.c monoboot_exec.c 
 	gcc -c $(CFLAGS) monoboot.c
 	gcc -c $(CFLAGS) monoboot_cmds.c
 	gcc -c $(CFLAGS) monoboot_cli.c

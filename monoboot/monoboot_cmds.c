@@ -10,9 +10,6 @@
 #include <time.h>
 #include <confuse.h>
 #include "monoboot.h"
-#include "monoboot_cmds.h"
-#include "monoboot_cli.h"
-#include "monoboot_exec.h"
 
 /* $Id$ */
 
@@ -190,7 +187,7 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
     MB_DEBUG("[mb] image_file: %s\n", image_file);
 
     /* fork/exec the kexec -l first */
-    if (do_exec(KEXEC_BINARY, "kexec", "-l", image_file, 0) < 0) {
+    if (do_exec(KEXEC_BINARY, "kexec", "-l", image_file, 0) != 0) {
 	return;
     }
 

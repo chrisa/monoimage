@@ -15,3 +15,91 @@ void show_config(cfg_t *cfg);
 void drop_config(cfg_t *cfg);
 void save_config(cfg_t *cfg);
 int check_last(cfg_t *cfg);
+
+#define KEXEC_BINARY "/usr/sbin/kexec"
+#define TFTP_BINARY  "/usr/bin/tftp"
+#define SCP_BINARY   "/usr/bin/scp"
+#define IP_BINARY    "/bin/ip"
+
+int do_exec (const char*, const char*, ...);
+
+int do_tftp (cfg_t *, char *, char *);
+int do_netconf (cfg_t *);
+
+#define KEXEC_BINARY "/usr/sbin/kexec"
+#define TFTP_BINARY  "/usr/bin/tftp"
+#define SCP_BINARY   "/usr/bin/scp"
+#define IP_BINARY    "/bin/ip"
+
+int do_exec (const char*, const char*, ...);
+
+int do_tftp (cfg_t *, char *, char *);
+int do_netconf (cfg_t *);
+#define MB_PROMPT_MAX 32
+#define MB_NETWORK_MAX 16
+
+void mb_interact(cfg_t *cfg);
+
+void set_mb_mode(int);
+int get_mb_mode(void);
+
+void set_mb_image(char *);
+char *get_mb_image(void);
+void set_mb_network(char *);
+char *get_mb_network(void);
+
+void set_mb_prompt(char *);
+
+/* CLI modes */
+
+#define MB_MODE_EXEC       0
+#define MB_MODE_CONF       1
+#define MB_MODE_CONF_IMAGE 2
+#define MB_MODE_CONF_NET   3
+
+#define KEXEC_BINARY "/usr/sbin/kexec"
+#define TFTP_BINARY  "/usr/bin/tftp"
+#define SCP_BINARY   "/usr/bin/scp"
+#define IP_BINARY    "/bin/ip"
+
+int do_exec (const char*, const char*, ...);
+
+int do_tftp (cfg_t *, char *, char *);
+int do_netconf (cfg_t *);
+#define MB_PROMPT_MAX 32
+#define MB_NETWORK_MAX 16
+
+void mb_interact(cfg_t *cfg);
+
+void set_mb_mode(int);
+int get_mb_mode(void);
+
+void set_mb_image(char *);
+char *get_mb_image(void);
+void set_mb_network(char *);
+char *get_mb_network(void);
+
+void set_mb_prompt(char *);
+
+/* CLI modes */
+
+#define MB_MODE_EXEC       0
+#define MB_MODE_CONF       1
+#define MB_MODE_CONF_IMAGE 2
+#define MB_MODE_CONF_NET   3
+
+/*
+ * boot
+ * show
+ * copy
+ * conf
+ * write
+ */
+
+void cmd_boot(cfg_t *, char **);
+void cmd_show(cfg_t *, char **);
+void cmd_copy(cfg_t *, char **);
+void cmd_conf(cfg_t *, char **);
+void cmd_exit(cfg_t *, char **);
+void cmd_write(cfg_t *, char **);
+

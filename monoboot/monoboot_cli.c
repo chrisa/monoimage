@@ -6,8 +6,6 @@
 #include <confuse.h>
 
 #include "monoboot.h"
-#include "monoboot_cli.h"
-#include "monoboot_cmds.h"
 
 /* $Id$ */
 

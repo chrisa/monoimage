@@ -9,9 +9,6 @@
 #include <string.h>
 #include <confuse.h>
 #include "monoboot.h"
-#include "monoboot_cmds.h"
-#include "monoboot_cli.h"
-#include "monoboot_exec.h"
 
 #define MAXARGS 31
 
