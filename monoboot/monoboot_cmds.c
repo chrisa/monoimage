@@ -226,7 +226,9 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
 	    return -1;
 	}
     } else {
-	image_tag = cfg_getstr(cfg, "bootimage");
+	/* if the user didn't give us a tag name to boot
+	   then use 'default' */
+	image_tag = cfg_getstr(cfg, "default");
     }
 
     if (strncmp(cfg_getstr(cfg, "tryonce"), "yes", 3) == 0) {

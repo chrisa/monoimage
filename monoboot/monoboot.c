@@ -35,6 +35,7 @@
 #include <signal.h>
 #include <setjmp.h>
 #include <termios.h>
+#include <string.h>
 #include "mbconf.h"
 #include "monoboot.h"
 
@@ -42,7 +43,10 @@ int main(int argc, char **argv) {
     cfg_t *cfg;
     int interact = 1;
     char conf_path[MB_PATH_MAX];
+    char bootimage[MB_IMAGE_MAX];
     int delay = 0;
+    char **cmdline;
+    int ret;
 
     /* make sure important things are mounted */
     if (check_mounted(MB_PATH_CONFIG) != MB_CM_YES) {
@@ -94,7 +98,12 @@ int main(int argc, char **argv) {
     }
 
     /* deal with the fallout from last time round */
-    check_last(cfg);
+    ret = check_last(cfg, bootimage);
+    if (ret) {
+	MB_DEBUG("[mb] main: last boot successful, will boot %s now\n", bootimage);
+    } else {
+	MB_DEBUG("[mb] main: last boot failed, will boot %s now\n", bootimage);
+    }
 
     if (interact == 1) {
 	MB_DEBUG("[mb] main: configuring network\n");
@@ -103,7 +112,8 @@ int main(int argc, char **argv) {
 	mb_interact(cfg);
     } else {
 	MB_DEBUG("[mb] main: booting image\n");
-	cmd_boot(cfg, NULL);
+	cmdline[0] = (char *)bootimage;
+	cmd_boot(cfg, cmdline );
     }
     return 0;
 }
@@ -127,45 +137,37 @@ cfg_t* load_config(char *file) {
 }
 
 /* examine last boot's success */
-int check_last(cfg_t *cfg) {
+int check_last(cfg_t *cfg, char *image) {
+    
 
     /* first thing - unset bootonce flag. */
     cfg_setstr(cfg, "tryonce", "no");
-
+    
     /* check for success of last boot */
     if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "lastboot")) != 0) {
     	MB_DEBUG("[mb] check_last: last image attempted failed.\n");
 	/* the last attempt failed, amend the config to something sane */
 	
-	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "default")) == 0) {
-	    /* we just tried our default image and it failed. set bootimage to
-	       fallback */
-	    MB_DEBUG("[mb] check_last: switching from default to fallback.\n");
-	    cfg_setstr(cfg, "bootimage", cfg_getstr(cfg, "fallback"));
-	}
-
 	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "fallback")) == 0) {
+	    MB_DEBUG("[mb] check_last: fallback failed, panicking.\n");
 	    /* we just tried our fallback image and it failed. yikes.
 	       don't do anything, sit here and wait for someone to
 	       help us out. */
-	    MB_DEBUG("[mb] check_last: fallback failed, panicking.\n");
-
 	    /* XXX */
 	}
 
-	return 0;
-	
+	strcpy(image, cfg_getstr(cfg, "fallback"));
+	MB_DEBUG("DEBUG: set bootimage to %s\n", image);
+	return 0;	
+
     } else {
     	MB_DEBUG("[mb] check_last: last image attempted succeeded.\n");
 	/* it worked. if we just booted fallback properly, switch back
 	   to default. otherwise leave alone - we've already switched
 	   off bootonce, so we'll boot default as per normal */
 	
-	if (strcmp(cfg_getstr(cfg, "lasttry"), cfg_getstr(cfg, "fallback")) == 0) {
-	    cfg_setstr(cfg, "bootimage", cfg_getstr(cfg, "default"));
-	    MB_DEBUG("[mb] check_last: fallback succeeded, switching back to default\n");
-	}
-
+	strcpy(image, cfg_getstr(cfg, "default"));
+	MB_DEBUG("DEBUG: set bootimage to %s\n", image);
 	return 1;
     }
 }

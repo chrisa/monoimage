@@ -18,7 +18,6 @@ static cfg_opt_t opts[] = {
     CFG_STR("fallback",   "none",       CFGF_NONE),
     CFG_STR("lasttry",    "none",       CFGF_NONE),
     CFG_STR("lastboot",   "none",       CFGF_NONE),
-    CFG_STR("bootimage",  "none",       CFGF_NONE),
     CFG_SEC("image",      image_opts,   CFGF_MULTI | CFGF_TITLE),
     CFG_SEC("network",    network_opts, CFGF_MULTI | CFGF_TITLE),
     CFG_STR("line",       "none",       CFGF_LIST),
