@@ -1,6 +1,7 @@
 ./doc/config_partition.txt
 ./doc/overview
 ./gpio/gpio.c
+./gpio/Makefile
 ./include/monoimage.h
 ./initrd/.cvsignore
 ./initrd/make-initrd.sh

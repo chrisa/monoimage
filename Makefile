@@ -7,16 +7,29 @@
 # * an initrd
 # * an image
 #
-world:
+
+all: 
 	$(MAKE) -C linuxrc
-	$(MAKE) -C monoboot
 	$(MAKE) -C initrd
-	$(MAKE) -C rootfs
-	perl utils/makeimage.pl -k vmlinuz -i initrd.img -r rootfs.img > monoimage
+	$(MAKE) -C monoboot
+	$(MAKE) -C kexec-tools
+	$(MAKE) -C gpio
+
+initrd: linuxrc/linuxrc
+	$(MAKE) -C initrd
+
+monoboot/monoboor: 
+	$(MAKE) -C monoboot
+
+linuxrc/linuxrc:
+	$(MAKE) -C linuxrc
 
 clean:
 	$(MAKE) -C linuxrc clean
 	$(MAKE) -C monoboot clean
-	-rm initrd.img rootfs.img monoimage
+	$(MAKE) -C initrd clean
+	$(MAKE) -C kexec-tools clean
+	$(MAKE) -C gpio clean
 
-
+release:
+	tar zcvTf MANIFEST monoimage-tools.tar.gz 
