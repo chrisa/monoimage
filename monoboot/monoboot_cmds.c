@@ -95,8 +95,9 @@ char *get_running_config(cfg_t *cfg) {
     char buf[MB_CONFIG_MAX];
     int sec_count, n;
 
-    sprintf(config, "version = %ld\n\nbootonce = %s\ntryonce = %s\n\nfallback = %s\ndefault = %s\n\nlasttry = %s\nlastboot = %s\n\nbootimage = %s\n", 
+    sprintf(config, "version = %ld\ndelay = %ld\n\nbootonce = %s\ntryonce = %s\n\nfallback = %s\ndefault = %s\n\nlasttry = %s\nlastboot = %s\n\nbootimage = %s\n", 
 	    cfg_getint(cfg,"version"), 
+	    cfg_getint(cfg,"delay"), 
 	    cfg_getstr(cfg,"bootonce"),
 	    cfg_getstr(cfg,"tryonce"),
 	    cfg_getstr(cfg,"fallback"),
@@ -285,6 +286,13 @@ int cmd_conf(cfg_t *cfg, char **cmdline) {
 	/* actually process config commands */
 	if (cmdline[0]) {
 	    
+	    if (strncmp(cmdline[0], "delay", 5) == 0) {
+		if (cmdline[1] && atoi(cmdline[1]) >= 0) {
+		    cfg_setint(cfg, "delay", atoi(cmdline[1]));
+		    printf("%s -> %ld [ok]\n", "delay", cfg_getint(cfg, "delay"));
+		}
+	    }
+
 	    if (strncmp(cmdline[0], "bootonce", 8) == 0) {
 		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
 		    cfg_setstr(cfg, "bootonce", cmdline[1]);
@@ -458,14 +466,22 @@ int cmd_conf(cfg_t *cfg, char **cmdline) {
 }
 
 int cmd_write(cfg_t *cfg, char **cmdline) {
-    FILE *fp = fopen(MB_CONF_NEW, "w");
+    FILE *fp;
     char *config;
     char timestr[MB_TIMESTR_MAX];
+    char conf_new_path[MB_PATH_MAX];
+    char conf_old_path[MB_PATH_MAX];
+    char conf_path[MB_PATH_MAX];
     time_t t;
 
-    MB_DEBUG("[mb] cmd_write: writing config to %s\n", MB_CONF_NEW);
+    sprintf(conf_new_path, "%s/%s", MB_PATH_CONFIG, MB_CONF_NEW);
+    sprintf(conf_old_path, "%s/%s", MB_PATH_CONFIG, MB_CONF_OLD);
+    sprintf(conf_path, "%s/%s", MB_PATH_CONFIG, MB_CONF);
+
+    MB_DEBUG("[mb] cmd_write: writing config to %s\n", conf_new_path);
+    fp = fopen(conf_new_path, "w");
     if (!fp) {
-	MB_DEBUG("[mb] cmd_write: open failed: %s\n", strerror(errno));
+	MB_DEBUG("[mb] cmd_write: open %s for write failed: %s\n", conf_new_path, strerror(errno));
 	return -1;
     }
     
@@ -480,12 +496,12 @@ int cmd_write(cfg_t *cfg, char **cmdline) {
     fputs(config, fp);
     fclose(fp);
     
-    MB_DEBUG("[mb] cmd_write: preserving old config as %s\n", MB_CONF_OLD);
-    if (rename(MB_CONF, MB_CONF_OLD)) {
+    MB_DEBUG("[mb] cmd_write: preserving old config as %s\n", conf_old_path);
+    if (rename(conf_path, conf_old_path)) {
 	MB_DEBUG("[mb] cmd_write: rename failed: %s\n", strerror(errno));
     }
     MB_DEBUG("[mb] cmd_write: putting new config in place\n");
-    if (rename(MB_CONF_NEW, MB_CONF)) {
+    if (rename(conf_new_path, conf_path)) {
 	MB_DEBUG("[mb] cmd_write: rename failed: %s\n", strerror(errno));
     }
     return 0;
