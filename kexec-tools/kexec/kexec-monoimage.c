@@ -54,6 +54,7 @@ void monoimage_usage(void)
 {
 	printf(	"-d, --debug               Enable debugging to help spot a failure.\n"
 		"    --real-mode           Use the kernels real mode entry point.\n"
+		"    --command-line=STRING Set the kernel command line to STRING.\n"
 		);
        
 }
