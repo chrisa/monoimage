@@ -1,5 +1,57 @@
+BUILD
+
 Run make from here, as root: it'll build a linuxrc and a monoboot
 binary, then make an initrd and a minimal testing rootfs, then a
 monoimage. Expects to find a vmlinuz here. 
  
+INSTALL
+
+This partition scheme works, others may also work: three partitions,
+"root", "config" and "images", typically hda1/2/3. 
+
+Create hda1 of say 32M, hda2 of 8M, and hda3 as the rest of the
+disk. Format all as ext3. Populate hda1 with this:
+
+XXX root file list
+
+/lib/libc.so.6
+/lib/libdl.so.2
+/lib/libncurses.so.5
+/lib/ld-linux.so.2
+/lib/libconfuse.so.0
+/lib/libreadline.so.4
+/lib/libdevmapper.so.1.00
+/lib/libresolv.so.2
+/bin/ip
+/bin/mount
+/config/
+/sbin/monoboot
+/sbin/init  // actually bash
+/sbin/lilo
+/sbin/lilo.real
+/sbin/mbsh
+/boot/sarge.bmp
+/boot/map
+/boot/boot.0340
+/boot/vmlinuz-2.6.8.1-kexec
+/etc/lilo.conf
+/etc/fstab
+/usr/sbin/kexec // kexec from monoimage dist.
+/proc/
+
+create a /dev, copy in MAKEDEV and run MAKEDEV for std, console and
+hda. The kernel shouldn't require an initrd, and should include the
+kexec patch.
+
+chroot into that and run lilo, setting the 'boot' parameter in
+lilo.conf appropriately. Edit the fstab to match your actual partition
+layout. You should be able to boot into that and run things.
+
+Put the example mb.conf in hda2's fs, mounted on /config.  Put an
+image file in hda3's fs, mounted on /images - call it image1.mi if you
+don't want to bother changing mb.conf.
+
+Boot into hda1's root, type monoboot, and you should be fired into the
+image.
+
 
