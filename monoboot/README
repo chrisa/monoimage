@@ -1,0 +1,5 @@
+first sketch of a monoboot
+lemon 20040609
+
+libconfuse comes from http://www.nongnu.org/confuse/
+$ apt-get install libconfuse-dev (apparently)
