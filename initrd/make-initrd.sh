@@ -1,6 +1,7 @@
 #!/bin/sh -e
+
 T=tmp
-C=../initrd.img
+C=initrd.img
 
 DIRS="dev proc images"
 DEVS="loop console std hda"
@@ -30,6 +31,6 @@ cd ../..
 rm $T/dev/MAKEDEV
 
 echo making cramfs
-mkcramfs $T $C
+/usr/sbin/mkcramfs $T $C
 
 echo new initrd is at $C

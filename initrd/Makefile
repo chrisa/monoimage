@@ -1,2 +1,2 @@
-initrd:
-	sh make-initrd.sh
+initrd.img:
+	sh be-root.sh ./make-initrd.sh
