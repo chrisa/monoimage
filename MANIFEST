@@ -4,6 +4,7 @@
 ./include/monoimage.h
 ./initrd/.cvsignore
 ./initrd/make-initrd.sh
+./initrd/be-root.sh
 ./initrd/Makefile
 ./initrd/tmp/
 ./kexec-tools/kexec/ifdown.c
