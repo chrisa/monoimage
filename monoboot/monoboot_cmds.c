@@ -263,7 +263,7 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     MB_DEBUG("[mb] image path: %s\n", image_path);
 
     /* check the config tag is there */
-    sprintf(config_path, "%s/%s", MB_PATH_CONFIG, image_tag);
+    sprintf(config_path, "%s/tag/%s", MB_PATH_CONFIG, image_tag);
     if (stat(config_path, &sbuf) < 0) {
 	MB_DEBUG("[mb] cmd_boot: couldn't stat %s: %s", config_path, strerror(errno));
 	return -1;
