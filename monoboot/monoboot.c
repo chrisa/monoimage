@@ -47,7 +47,7 @@ cfg_t* load_config(char *file) {
 	CFG_END()
     };
 
-    cfg_opt_t opts[] = {
+    static cfg_opt_t opts[] = {
 	CFG_INT("version", 0, CFGF_NONE),
 	CFG_STR("default", "none", CFGF_NONE),
 	CFG_STR("fallback", "none", CFGF_NONE),
