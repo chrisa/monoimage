@@ -79,7 +79,30 @@ int check_image_tag(cfg_t *cfg, char *tag) {
 	return 0;
     }
 }
-   
+
+char *get_running_config(cfg_t *cfg) {
+    char config[MB_CONFIG_MAX];
+    int images, n;
+
+    sprintf(config, "\nversion = %ld\nbootonce = \"%s\"\nfallback = \"%s\"\nlastboot = \"%s\"\ntryonce = \"%s\"\nlasttry = \"%s\"\n", 
+	    cfg_getint(cfg,"version"), 
+	    cfg_getstr(cfg,"bootonce"),
+	    cfg_getstr(cfg,"fallback"),
+	    cfg_getstr(cfg,"lastboot"),
+	    cfg_getstr(cfg,"tryonce"),
+	    cfg_getstr(cfg,"lasttry"));
+    
+    images = cfg_size(cfg, "image");
+    for (n = 0; n < images; n++) {
+	cfg_t *image = cfg_getnsec(cfg, "image", n);
+	char buf[256];
+	sprintf(buf, "\nimage %s {\n  filename = \"%s\"\n}\n", 
+		cfg_title(image), 
+		cfg_getstr(image, "filename"));
+	strncat(config, buf, strlen(buf));
+    }
+    return strdup(config);
+}
 
 void cmd_boot(cfg_t *cfg, char **cmdline) {
     
@@ -161,29 +184,15 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 
 
 void cmd_show(cfg_t *cfg, char **cmdline) {
-    int images, n;
-
+    char *config;
     /* we expect either 'show running-config' or 'show startup-config' */
     if (cmdline[1] == NULL) {
 	return;
     } else {
 	if (strncmp(cmdline[1], "r", 1) == 0) {
 	    /* show run */
-	    printf("\n");
-	    printf("version %ld\n",  cfg_getint(cfg,"version"));
-	    printf("bootonce %s\n", cfg_getstr(cfg,"bootonce"));
-	    printf("fallback %s\n", cfg_getstr(cfg,"fallback"));
-	    printf("lastboot %s\n", cfg_getstr(cfg,"lastboot"));
-	    printf("tryonce %s\n",  cfg_getstr(cfg,"tryonce"));
-	    printf("lasttry %s\n",  cfg_getstr(cfg,"lasttry"));
-
-	    images = cfg_size(cfg, "image");
-	    for (n = 0; n < images; n++) {
-		cfg_t *image = cfg_getnsec(cfg, "image", n);
-		printf("\nimage %s {\n", cfg_title(image));
-		printf("  filename %s\n", cfg_getstr(image, "filename"));
-		printf("}\n");
-	    }
+	    config = get_running_config(cfg);
+	    printf("%s", config);
 	}
 	if (strncmp(cmdline[1], "s", 1) == 0) {
 	    /* show start */
@@ -319,6 +328,6 @@ void cmd_conf(cfg_t *cfg, char **cmdline) {
     }    
 }
 
-    
-
-    
+void cmd_write(cfg_t *cfg, char **cmdline) {
+    save_config(cfg);
+}

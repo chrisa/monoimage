@@ -171,6 +171,11 @@ void mb_interact(cfg_t *cfg) {
 		    cmd_conf(cfg, cmdline);
 		}
 
+		/* == WRITE == */
+		if ( strncmp(cmdline[0], "write", 5) == 0 ) {
+		    cmd_write(cfg, cmdline);
+		}
+
 	    } else {
 		/* unknown mode */
 	    }
