@@ -13,16 +13,16 @@
 #   that your kernel and rootfs are correctly named below
 
 # launch it by running on the newly booted soekris something like:
-#   udhcpc eth0
-#   SERVER=192.168.237.8 && export SERVER && cd /var/tmp
-#   tftp -g -l setup-cf.sh -r setup-cf.sh ${SERVER} && sh ./setup-cf.sh
+#  SERVER=192.168.237.8 && export SERVER && cd /var/tmp
+#  tftp -g -l setup-cf.sh -r setup-cf.sh ${SERVER} && sh ./setup-cf.sh ${SERVER}
 
 # TODO:
 #   don't bin errors, deal with them
 #   reduce the amount of rampant heredoc'ing
 
 KERNEL=bzImage-kexec
-ROOTFS_TGZ=buildroot.tar.gz
+ROOTFS_TGZ=root_fs_i386.tar.gz
+MONOIMAGE=monoimage
 
 # functions
 _partition()
@@ -70,7 +70,7 @@ EOP
 
 _usage()
 {
-    echo please set SERVER to your tftp server
+    echo setup-cf.sh \<server\>
     exit 1
 }
 
@@ -85,7 +85,7 @@ _format()
 _mount_mnt()
 {
     echo mounting ext3 $1 at /mnt
-    mount -t ext3 $1 /mnt
+    mount -t ext3 $1 /mnt 
 }
 
 _umount_mnt()
@@ -95,6 +95,13 @@ _umount_mnt()
     umount /mnt
 }
 
+_clear_mounts()
+{
+    echo clearing out stage1 mounts
+    umount /mnt
+    umount /config
+    umount /images
+}
 _copy_kernel()
 {
     echo copying kernel from ${SERVER}
@@ -108,6 +115,13 @@ _copy_fs()
     cd /mnt
     busybox tar zxf /var/tmp/$1
     cd /
+}
+
+_copy_monoimage()
+{
+    echo copying monoimage from ${MONOIMAGE}
+    tftp -g -r $1 -l /mnt/$1 ${SERVER}
+    mv /mnt/$1 /mnt/default.img
 }
 
 _unpack_skel()
@@ -145,6 +159,12 @@ setup (hd0)
 EOG
 }
 
+_install_mbconf()
+{
+    echo installing default mb.conf
+    cp /usr/share/funknet/mb.conf-sample /mnt/mb.conf
+}
+
 _check_kernel()
 {
     if [ -r /mnt/boot/$1 ]
@@ -157,12 +177,13 @@ _check_kernel()
 
 # main
 
-if [ -z ${SERVER} ]
+if [ -z $1 ]
 then
     _usage
 fi
+SERVER=$1
 
-_umount_mnt
+_clear_mounts
 _partition
 _format
 
@@ -173,7 +194,12 @@ _copy_kernel ${KERNEL}
 _umount_mnt
 
 _mount_mnt "/dev/hda2"
-_unpack_skel "/etc/config-skel.tar.gz"
+_unpack_skel "/usr/share/funknet/config-skel.tar.gz"
+_install_mbconf 
+_umount_mnt
+
+_mount_mnt "/dev/hda3"
+_copy_monoimage ${MONOIMAGE}
 _umount_mnt
 
 _mount_mnt "/dev/hda1"
@@ -185,3 +211,4 @@ echo all done.
 echo
 
 exit 0
+
