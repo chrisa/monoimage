@@ -12,7 +12,7 @@
 
 void cmd_boot(cfg_t *cfg, char **cmdline) {
     
-    pid_t pid;
+    pid_t pid, status;
     int n,m,images;
     char *image_tag;
     char image_file[256];
@@ -20,7 +20,7 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
     /* if the user said "boot <something>" then check that tag exists,
        then boot it, else default tag */
 
-    if (cmdline[1] != NULL) {
+    if (cmdline != NULL && cmdline[1] != NULL) {
 	/* check */
 	images = cfg_size(cfg, "image");
 	m = 0;
@@ -40,8 +40,13 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 	image_tag = cfg_getstr(cfg, "default");
     }
 
+    MB_DEBUG("[mb] image_tag: %s\n", image_tag);
+
     cfg_setstr(cfg, "lasttry", image_tag);
 
+    /* must call cfg_size again, if we're going to use cfg_getnsec (it
+       seems) */
+    images = cfg_size(cfg, "image");
     for (n = 0; n < images; n++) {
 	cfg_t *image = cfg_getnsec(cfg, "image", n);
 	if (strncmp(cfg_title(image), image_tag, strlen(cfg_title(image))) == 0) {
@@ -49,30 +54,45 @@ void cmd_boot(cfg_t *cfg, char **cmdline) {
 	}
     }
 
-    save_config(cfg);
-    drop_config(cfg);
+    MB_DEBUG("[mb] image_file: %s\n", image_file);
 
     /* fork/exec the kexec -l first */
     if ( (pid = fork()) < 0) {
 	MB_DEBUG("[mb] boot_image: fork failed: %s\n", strerror(errno));
-	exit (1);
+	return;
     } else if (pid == 0) {
-	MB_DEBUG("[mb] boot_image: booting from default image file %s\n", image_file);
+	MB_DEBUG("[mb] boot_image: booting image file %s\n", image_file);
 	if (execlp("KEXEC_BINARY", "kexec", "-l", image_file, (char *) 0) < 0) {
-	    MB_DEBUG("[mb] boot_image: exec failed: %s\n", strerror(errno));
-	    exit (1);
+	    MB_DEBUG("[mb] boot_image: exec of %s failed: %s\n", KEXEC_BINARY, strerror(errno));
+	    exit(1);
 	}
     }
-    if (waitpid(pid, NULL, 0) < 0) {
+    if (waitpid(pid, &status, 0) < 0) {
 	MB_DEBUG("[mb] boot_image: wait failed: %s\n", strerror(errno));
-	exit (1);
+	return;
+    } else if (WIFEXITED(status)) {
+	MB_DEBUG("[mb] child exited ... \n");
+	if (WEXITSTATUS(status)) {
+	    MB_DEBUG("[mb] ... non-zero, bailing out\n");
+	    return;
+	} else {
+	    MB_DEBUG("[mb] ... zero, looks good\n");
+	}
+    } else {
+	MB_DEBUG("[mb] child died, bailing\n");
+	return;
     }
-    
+
+    /* drop the confuse config stuff now, 'cos we're fairly sure this
+       exec will work ok. */
+    save_config(cfg);
+    drop_config(cfg);
+
     /* now exec the kexec -e -- hardly worth forking */
     execlp("KEXEC_BINARY", "kexec", "-e", (char *) 0);
 
     /* can't happen; we're off booting the new kernel (right?) */
-    MB_DEBUG("[mb] boot_image: we're still here. kexec failed: %s\n", strerror(errno));
+    MB_DEBUG("[mb] boot_image: we're still here. exec of %s failed: %s\n", KEXEC_BINARY, strerror(errno));
     return;
 }
 
@@ -87,7 +107,7 @@ void cmd_show(cfg_t *cfg, char **cmdline) {
 	if (strncmp(cmdline[1], "r", 1) == 0) {
 	    /* show run */
 	    printf("running-config:\n");
-	    printf("version %d\n",  cfg_getint(cfg,"version"));
+	    printf("version %ld\n",  cfg_getint(cfg,"version"));
 	    printf("bootonce %s\n", cfg_getstr(cfg,"bootonce"));
 	    printf("fallback %s\n", cfg_getstr(cfg,"fallback"));
 	    printf("lastboot %s\n", cfg_getstr(cfg,"lastboot"));

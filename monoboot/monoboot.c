@@ -25,6 +25,7 @@
 #include <sys/wait.h>
 #include <stdlib.h>
 #include <unistd.h>
+#include <libgen.h>
 #include <string.h>
 #include <getopt.h>
 #include <confuse.h>
@@ -41,12 +42,15 @@ int main(int argc, char **argv) {
     cfg_t *cfg;
     int interact = 1;
 
-    if (!strncmp(argv[0],"mbsh",4)) {
+    if (!strncmp(basename(argv[0]),"mbsh",4)) {
+	MB_DEBUG("[mb] running as mbsh\n");
 	interact = 1;
-    } else if (!strncmp(argv[0],"monoboot",8)) {
+    } else if (!strncmp(basename(argv[0]),"monoboot",8)) {
+	MB_DEBUG("[mb] running as monoboot\n");
 	interact = 0;
     } else {
 	/* unsure what we've been run as */
+	MB_DEBUG("[mb] unknown argv0 %s\n", argv[0]);
 	interact = 1;
     }
 
