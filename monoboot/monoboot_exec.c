@@ -27,7 +27,7 @@ int do_exec (const char *binary, const char *args, ...) {
     while (args != 0 && argno < MAXARGS)
     {
 	MB_DEBUG("%s ", args);
-        array[argno++] = args;
+        array[argno++] = (char *)args;
         args = va_arg(ap, const char *);
     }
     array[argno] = (char *) 0;
@@ -113,7 +113,8 @@ int do_tftp (cfg_t *cfg, char *src, char *dst) {
 int do_netconf(cfg_t *cfg) {
     
     int net_count, n, ret;
-    char *iface, *addr, *gw;
+    const char *iface;
+    char *addr, *gw;
 
     /*
      * this will do:

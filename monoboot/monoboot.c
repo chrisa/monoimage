@@ -32,6 +32,7 @@
 #include "monoboot.h"
 #include "monoboot_cmds.h"
 #include "monoboot_cli.h"
+#include "monoboot_exec.h"
 
 int main(int argc, char **argv) {
     cfg_t *cfg;
