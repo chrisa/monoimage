@@ -6,16 +6,16 @@
  */
 
 struct monoimage_header {
-	uint8_t   magic[2];
-	uint16_t  version;
-	uint8_t   runfrom;
-	uint8_t   fstype;
-	uint32_t  kernel_offset;
-	uint32_t  ramdisk_offset;
-	uint32_t  rootfs_offset;
-} __packed__ ;
+    uint8_t   magic[4];
+    uint16_t  version;
+    uint8_t   runfrom;
+    uint8_t   fstype;
+    uint16_t  kernel_offset;
+    uint32_t  ramdisk_offset;
+    uint32_t  rootfs_offset;
+};
 
-#define MI_MAGIC "MI"
+#define MI_MAGIC "MIMG"
 
 #define MI_RUNFROM_LOOP  0
 #define MI_RUNFROM_CLOOP 1
