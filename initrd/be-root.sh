@@ -14,7 +14,7 @@ else
 fi
 
 if [ $USEFAKEROOT = 1 ]; then
-    $FAKEROOT $SCRIPT
+    $FAKEROOT /bin/sh $SCRIPT
 else 
     /bin/sh $SCRIPT
 fi
