@@ -221,7 +221,7 @@ int main (int argc, char **argv)
 		strncpy(imagefile, "/images/", 9);
 		strcat(imagefile, FS_IMG);
 
-		if ( umount("/images") != 0) {
+		if ( umount2("/images",0) != 0) {
 			fprintf(stderr, "umount /images failed: %s\n",
 				strerror(errno));
 			die_reboot();
