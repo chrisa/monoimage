@@ -1,0 +1,24 @@
+# a brief overview of monoimage, kexec and linuxrc
+# lemon 20040610
+
+0. 'kexec' is a kernel mod and userspace program allowing the running kernel
+   to load another kernel, as if from cold boot.
+
+0. 'monoimage' is a file containing a kernel, initrd and rootfs, laid out in a
+   specific way.
+
+1. we use a modified kexec that can handle our monoimage format.
+
+2. the initrd we build into a monoimage contains our custom linuxrc.
+
+3. this linuxrc is run when the new kernel boots, and it inspects the
+   original monoimage file to suss the offset for the rootfs.
+
+4. using this offset, linuxrc loopback mounts the rootfs.
+
+5. since we told the kexec'd kernel to mount loop0 as the rootfs all is good,
+   and we're now booted into our new kernel with its bundled rootfs,
+   /all from a single file/
+
+6. profit / beer / whatever does it for you
+
