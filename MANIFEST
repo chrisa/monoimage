@@ -49,6 +49,8 @@
 ./monoboot/Makefile
 ./monoboot/mb.conf
 ./monoboot/monoboot.c
+./monoboot/monoinit.c
+./monoboot/mbconf.h
 ./monoboot/monoboot.h
 ./monoboot/monoboot_cli.c
 ./monoboot/monoboot_cmds.c
