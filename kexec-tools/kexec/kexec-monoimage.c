@@ -83,14 +83,20 @@ int monoimage_load(FILE *file, int argc, char **argv,
 	int debug, real_mode_entry;
 	int opt;
 	struct monoimage_header bi_header;
-	char *image;
 	int file_fd;
 	struct stat imgbuf;
 	struct stat devbuf;
 	DIR *dir;
 	struct dirent *dev;
 	char images_dev[256];
-	char statbuf[256];
+	char *buf;
+	FILE *mtab;
+	char *buf_ptr;
+	char mpoint[256];
+	char *mp_ptr;
+	char *image;
+
+	buf = (char *)malloc(256 * sizeof(char));
 
 #define OPT_APPEND	OPT_MAX+0
 #define OPT_INITRD	OPT_MAX+1
@@ -138,7 +144,6 @@ int monoimage_load(FILE *file, int argc, char **argv,
 			break;
 		}
 	}
-	image = argv[optind];
 
 	/*
 	 * work out which device the image file is on
@@ -157,9 +162,9 @@ int monoimage_load(FILE *file, int argc, char **argv,
 		return -1;
 	}
 	while ( ( dev = readdir(dir) ) ) {
-		strncpy(statbuf, "/dev/", 6);
-		strncat(statbuf, dev->d_name, strlen(dev->d_name));
-		if (stat(statbuf, &devbuf) < 0) {
+		strncpy(buf, "/dev/", 6);
+		strncat(buf, dev->d_name, strlen(dev->d_name));
+		if (stat(buf, &devbuf) < 0) {
 			fprintf(stderr, "stat %s: %s\n", dev->d_name, strerror(errno));
 			closedir(dir);
 			return -1;
@@ -167,10 +172,48 @@ int monoimage_load(FILE *file, int argc, char **argv,
 		if (devbuf.st_rdev == imgbuf.st_dev && S_ISBLK(devbuf.st_mode)) {
 			/* this is our device */
 			strncpy(images_dev, dev->d_name, strlen(dev->d_name));
+			break;
 		}
 	}
 	closedir(dir);
 	fprintf(stderr, "images device: %s\n", images_dev);
+
+	/* figure out what the path to the image will be when we mount the images device on /images */
+	
+	/* read /etc/mtab to find the mount point of images_dev */
+	if ( (mtab = fopen("/etc/mtab", "r")) < 0 ) {
+		fprintf(stderr, "/etc/mtab: open: %s\n",
+			strerror(errno));
+		return -1;
+	}
+	while ( fgets(buf, 256, mtab) != NULL ) {
+ 		buf += 5;
+		if (strncmp(buf, images_dev, strlen(images_dev)) == 0) {
+
+			/* skip past the device, the space and the leading  / */
+			buf += (strlen(images_dev) + 1);
+
+			/* find the end of the mountpoint */
+			buf_ptr = buf;
+			while (strncmp(buf_ptr, " ", 1) != 0) {
+				buf_ptr++;
+			}
+			strncpy(mpoint, buf, (buf_ptr - buf));
+			break;
+		}
+	}
+
+	/* find the common part of the mount point and image path */
+	image = argv[optind];
+	mp_ptr = mpoint;
+	while (*mp_ptr == *image) {
+		image++;
+		mp_ptr++;
+	}
+	/* skip any leading / */
+	if (strncmp(image, "/", 1) == 0 ) {
+	 	image++;
+	}
 	
 	if (command_line_append) {
 		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s DEV=%s", command_line_append, image, images_dev);
