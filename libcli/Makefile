@@ -5,6 +5,7 @@ MAJOR = 1
 MINOR = 8
 REVISION = 5
 LIB = libcli.so
+STATICLIB = libcli.a
 
 CC = gcc
 DEBUG = -g
@@ -14,7 +15,7 @@ LDFLAGS += -shared -Wl,-soname,$(LIB).$(MAJOR).$(MINOR)
 LIBPATH += -L.
 LIBS = -lcrypt
 
-all: $(LIB) clitest
+all: $(STATICLIB) clitest
 
 $(LIB): libcli.o
 	$(CC) -o $(LIB).$(MAJOR).$(MINOR).$(REVISION) $^ $(LDFLAGS) $(LIBS)
@@ -22,10 +23,14 @@ $(LIB): libcli.o
 	ln -s $(LIB).$(MAJOR).$(MINOR).$(REVISION) $(LIB).$(MAJOR).$(MINOR)
 	ln -s $(LIB).$(MAJOR).$(MINOR) $(LIB)
 
+$(STATICLIB): libcli.o
+	ar cru libcli.a libcli.o
+	ranlib libcli.a
+
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -o $@ -c $^
 
-clitest: clitest.o $(LIB)
+clitest: clitest.o $(STATICLIB)
 	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ -L. -lcli
 
 clean:
