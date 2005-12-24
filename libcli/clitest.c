@@ -104,6 +104,7 @@ int main(int argc, char *argv[])
     cli = cli_init();
     cli_set_banner(cli, "libcli test environment");
     cli_set_hostname(cli, "router");
+    cli_set_newline(cli, "\n");
     cli_register_command(cli, NULL, "test", cmd_test, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
     cli_register_command(cli, NULL, "sex",  NULL, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
     cli_register_command(cli, NULL, "simple",  NULL, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);

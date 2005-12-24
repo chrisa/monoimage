@@ -31,6 +31,7 @@ struct cli_def
     char *promptchar;
     char *hostname;
     char *modestring;
+    char *newline;
     int privilege;
     int mode;
     int state;
@@ -73,6 +74,7 @@ void cli_deny_user(struct cli_def *cli, char *username);
 void cli_set_banner(struct cli_def *cli, char *banner);
 void cli_set_hostname(struct cli_def *cli, char *hostname);
 void cli_set_promptchar(struct cli_def *cli, char *promptchar);
+void cli_set_newline(struct cli_def *cli, char *newline);
 int cli_set_privilege(struct cli_def *cli, int privilege);
 int cli_set_configmode(struct cli_def *cli, int mode, char *config_desc);
 void cli_reprompt(struct cli_def *cli);

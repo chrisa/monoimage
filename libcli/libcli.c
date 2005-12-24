@@ -194,6 +194,12 @@ int cli_set_configmode(struct cli_def *cli, int mode, char *config_desc)
 	return old;
 }
 
+void cli_set_newline(struct cli_def *cli, char *newline)
+{
+        if (cli->newline) free (cli->newline);
+        cli->newline = strdup(newline);
+}
+
 int cli_build_shortest(struct cli_def *cli, struct cli_command *commands)
 {
 	struct cli_command *c, *p;
@@ -780,6 +786,11 @@ void cli_write_space(int sockfd, char *cmd, int cursor)
         strcpy((cmd + cursor), " ");
 }
 
+void cli_write_newline(struct cli_def *cli, int out)
+{
+        write(out, cli->newline, strlen(cli->newline));
+}
+
 void cli_reprompt(struct cli_def *cli)
 {
 	if (!cli) return;
@@ -887,9 +898,6 @@ int cli_loop(struct cli_def *cli, int in, int out)
 			fd_set r;
 			if (cli->showprompt)
 			{
-				if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-					write(out, "\r\n", 2);
-
 				switch (cli->state)
 				{
 					case STATE_LOGIN:
@@ -1007,7 +1015,7 @@ int cli_loop(struct cli_def *cli, int in, int out)
                         //			if (c == '\n') continue;
 			if (c == '\n') {
 				if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-					write(out, "\r\n", 2);
+                                        cli_write_newline(cli, out);
 				break;
 			}
 
@@ -1090,7 +1098,7 @@ int cli_loop(struct cli_def *cli, int in, int out)
 				if (cli->state == STATE_PASSWORD || cli->state == STATE_ENABLE_PASSWORD)
 					continue;
 
-				write(out, "\r\n", 2);
+                                cli_write_newline(cli, out);
 				show_prompt(cli, out);
 				write(out, cmd, l);
 				for (i = 0; i < cursorback; i++) write(out, "\b", 1);
@@ -1141,7 +1149,8 @@ int cli_loop(struct cli_def *cli, int in, int out)
 
 				strcpy(cmd, "quit");
 				l = cursor = strlen(cmd);
-				write(out, "quit\r\n", l + 2);
+				write(out, "quit", l);
+                                cli_write_newline(cli, out);
 				break;
 			}
 
@@ -1205,16 +1214,16 @@ int cli_loop(struct cli_def *cli, int in, int out)
 				{
 					// double tab
 					int i;
-					write(out, "\r\n", 2);
+                                        cli_write_newline(cli, out);
 					for (i = 0; i < num_completions; i++)
 					{
 						write(out, completions[i], strlen(completions[i]));
 						if (i % 4 == 3)
-							write(out, "\r\n", 2);
+                                                        cli_write_newline(cli, out);
 						else
 							write(out, "		", 1);
 					}
-					if (i % 4 != 3) write(out, "\r\n", 2);
+					if (i % 4 != 3) cli_write_newline(cli, out);
 					cli->showprompt = 1;
 				}
 				else
@@ -1381,7 +1390,7 @@ int cli_loop(struct cli_def *cli, int in, int out)
 				// ?
 				if (c == 63 && cursor == l)
 				{
-					write(out, "\r\n", 2);
+                                        cli_write_newline(cli, out);
 					oldcmd = cmd;
 					oldl = cursor = l - 1;
 					break;
@@ -1582,8 +1591,8 @@ static void _print(struct cli_def *cli, int filter, char *format, va_list ap)
 		{
 			if (cli->print_callback)
 				cli->print_callback(cli, p);
-			else if (cli->client)
-				fprintf(cli->client, "%s\r\n", p);
+			else if (cli->client) 
+                                fprintf(cli->client, "%s%s", p, cli->newline);
 		}
 
 		p = next;
@@ -1656,7 +1665,7 @@ int cli_match_filter_init(struct cli_def *cli, int argc, char **argv, struct cli
 	if (argc < 2)
 	{
 		if (cli->client)
-			fprintf(cli->client, "Match filter requires an argument\r\n");
+                        fprintf(cli->client, "Match filter requires an argument%s", cli->newline);
 
 		return CLI_ERROR;
 	}
@@ -1717,7 +1726,7 @@ int cli_match_filter_init(struct cli_def *cli, int argc, char **argv, struct cli
 	if ((i = regcomp(&state->match.re, p, rflags)))
 	{
 		if (cli->client)
-			fprintf(cli->client, "Invalid pattern \"%s\"\r\n", p);
+			fprintf(cli->client, "Invalid pattern \"%s\"%s", p, cli->newline);
 
 	    	free(p);
 		return CLI_ERROR;
@@ -1782,7 +1791,7 @@ int cli_range_filter_init(struct cli_def *cli, int argc, char **argv, struct cli
 		if (argc < 3)
 		{
 			if (cli->client)
-				fprintf(cli->client, "Between filter requires 2 arguments\r\n");
+				fprintf(cli->client, "Between filter requires 2 arguments%s", cli->newline);
 
 			return CLI_ERROR;
 		}
@@ -1795,7 +1804,7 @@ int cli_range_filter_init(struct cli_def *cli, int argc, char **argv, struct cli
 		if (argc < 2)
 		{
 			if (cli->client)
-				fprintf(cli->client, "Begin filter requires an argument\r\n");
+				fprintf(cli->client, "Begin filter requires an argument%s", cli->newline);
 
 			return CLI_ERROR;
 		}
@@ -1843,7 +1852,7 @@ int cli_count_filter_init(struct cli_def *cli, int argc, char **argv, struct cli
 	if (argc > 1)
 	{
 		if (cli->client)
-			fprintf(cli->client, "Count filter does not take arguments\r\n");
+			fprintf(cli->client, "Count filter does not take arguments%s", cli->newline);
 
 		return CLI_ERROR;
 	}
@@ -1862,7 +1871,7 @@ int cli_count_filter(struct cli_def *cli, char *string, void *data)
 	{
 		// print count
 		if (cli->client)
-			fprintf(cli->client, "%d\r\n", *count);
+			fprintf(cli->client, "%d%s", *count, cli->newline);
 
 		free(count);
 		return CLI_OK;
