@@ -63,7 +63,7 @@ struct cli_def *cli_init();
 int cli_done(struct cli_def *cli);
 struct cli_command *cli_register_command(struct cli_def *cli, struct cli_command *parent, char *command, int (*callback)(struct cli_def *, char *, char **, int), int privilege, int mode, char *help);
 int cli_unregister_command(struct cli_def *cli, char *command);
-int cli_loop(struct cli_def *cli, int sockfd);
+int cli_loop(struct cli_def *cli, int in, int out);
 int cli_file(struct cli_def *cli, FILE *fh, int privilege, int mode);
 void cli_set_auth_callback(struct cli_def *cli, int (*auth_callback)(char *, char *));
 void cli_set_enable_callback(struct cli_def *cli, int (*enable_callback)(char *));

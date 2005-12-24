@@ -4,7 +4,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 #include <memory.h>
+#ifndef __APPLE__
 #include <malloc.h>
+#endif
 #include <string.h>
 #include <ctype.h>
 #include <unistd.h>
@@ -703,9 +705,61 @@ int cli_run_command(struct cli_def *cli, char *command)
 	return CLI_OK;
 }
 
-int cli_get_completions(char *command, char **completions, int max_completions)
+int cli_find_completions(struct cli_def *cli, struct cli_command *commands, int num_words, char *words[], int start_word, char **completions, int num_completions)
 {
-	return 0;
+        struct cli_command *c;
+
+        for (c = commands; c; c = c->next)
+        {
+                if (cli->privilege < c->privilege)
+                        continue;
+                
+                if (strncasecmp(c->command, words[start_word], strlen(words[start_word])))
+                        continue;
+
+                if (c->mode == cli->mode || c->mode == MODE_ANY)
+                {
+                        /* we have a match, are we at the last word? */
+                        if (start_word == (num_words - 1))
+                        {
+                                completions[num_completions++] = c->command;
+                        }
+                        else 
+                        {
+                                if (c->children)
+                                {
+                                        num_completions = cli_find_completions(cli, c->children, num_words, words, start_word + 1, completions, num_completions);
+                                }
+                        }
+                }
+        }
+        return num_completions;
+}
+
+int cli_get_completions(struct cli_def *cli, char *command, char **completions, int max_completions)
+{
+        int num_completions = 0;
+        char *words[128] = {0};
+        int num_words, i;
+
+	if (!command) return 0;
+	while (isspace(*command))
+                command++;
+	if (!*command) return 0;
+
+	num_words = cli_parse_line(command, words, sizeof(words)/sizeof(words[0]));
+
+	if (num_words) 
+        {
+                num_completions = cli_find_completions(cli, cli->commands, num_words, words, 0, completions, 0);
+        }
+	else
+                num_completions = 0;
+
+        for (i = 0; i < 128; i++)
+                free(words[i]);
+
+        return num_completions;
 }
 
 void cli_clear_line(int sockfd, char *cmd, int l, int cursor)
@@ -718,6 +772,12 @@ void cli_clear_line(int sockfd, char *cmd, int l, int cursor)
 	write(sockfd, cmd, i);
 	memset(cmd, 0, i);
 	l = cursor = 0;
+}
+
+void cli_write_space(int sockfd, char *cmd, int cursor)
+{
+        write(sockfd, " ", 1);
+        strcpy((cmd + cursor), " ");
 }
 
 void cli_reprompt(struct cli_def *cli)
@@ -762,7 +822,7 @@ static int show_prompt(struct cli_def *cli, int sockfd)
 	return len + write(sockfd, cli->promptchar, strlen(cli->promptchar));
 }
 
-int cli_loop(struct cli_def *cli, int sockfd)
+int cli_loop(struct cli_def *cli, int in, int out)
 {
 	int n;
 	unsigned char c;
@@ -770,20 +830,20 @@ int cli_loop(struct cli_def *cli, int sockfd)
 	int l, oldl = 0, is_telnet_option = 0, skip = 0, esc = 0;
 	int cursor = 0, insertmode = 1;
 	char *username = NULL, *password = NULL;
-	char *negotiate =
-		"\xFF\xFB\x03"
-		"\xFF\xFB\x01"
-		"\xFF\xFD\x03"
-		"\xFF\xFD\x01";
+/* 	char *negotiate = */
+/* 		"\xFF\xFB\x03" */
+/* 		"\xFF\xFB\x01" */
+/* 		"\xFF\xFD\x03" */
+/* 		"\xFF\xFD\x01"; */
 
 	cli->state = STATE_LOGIN;
 
 	memset(cli->history, 0, MAX_HISTORY);
-	write(sockfd, negotiate, strlen(negotiate));
+	//write(out, negotiate, strlen(negotiate));
 
 	cmd = malloc(4096);
 
-	cli->client = fdopen(sockfd, "w+");
+	cli->client = fdopen(out, "w+");
 	setbuf(cli->client, NULL);
 	if (cli->banner)
 		cli_error(cli, "%s", cli->banner);
@@ -828,29 +888,29 @@ int cli_loop(struct cli_def *cli, int sockfd)
 			if (cli->showprompt)
 			{
 				if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-					write(sockfd, "\r\n", 2);
+					write(out, "\r\n", 2);
 
 				switch (cli->state)
 				{
 					case STATE_LOGIN:
-						write(sockfd, "Username: ", strlen("Username: "));
+						write(out, "Username: ", strlen("Username: "));
 						break;
 					case STATE_PASSWORD:
-						write(sockfd, "Password: ", strlen("Password: "));
+						write(out, "Password: ", strlen("Password: "));
 						break;
 					case STATE_NORMAL:
 					case STATE_ENABLE:
-						show_prompt(cli, sockfd);
-						write(sockfd, cmd, l);
+						show_prompt(cli, out);
+						write(out, cmd, l);
 						if (cursor < l)
 						{
 							int n = l - cursor;
 							while (n--)
-								write(sockfd, "\b", 1);
+								write(out, "\b", 1);
 						}
 						break;
 					case STATE_ENABLE_PASSWORD:
-						write(sockfd, "Password: ", strlen("Password: "));
+						write(out, "Password: ", strlen("Password: "));
 						break;
 
 				}
@@ -858,9 +918,9 @@ int cli_loop(struct cli_def *cli, int sockfd)
 			}
 
 			FD_ZERO(&r);
-			FD_SET(sockfd, &r);
+			FD_SET(in, &r);
 
-			if ((sr = select(sockfd + 1, &r, NULL, NULL, &tm)) < 0)
+			if ((sr = select(in + 1, &r, NULL, NULL, &tm)) < 0)
 			{
 				// Select Error
 				if (errno == EINTR) continue;
@@ -877,7 +937,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				tm.tv_usec = 0;
 				continue;
 			}
-			if ((n = read(sockfd, &c, 1)) < 0)
+			if ((n = read(in, &c, 1)) < 0)
 			{
 				if (errno == EINTR) continue;
 				perror("read");
@@ -944,15 +1004,15 @@ int cli_loop(struct cli_def *cli, int sockfd)
 			}
 
 			if (c == 0) continue;
-			if (c == '\n') continue;
-			if (c == '\r') {
+                        //			if (c == '\n') continue;
+			if (c == '\n') {
 				if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-					write(sockfd, "\r\n", 2);
+					write(out, "\r\n", 2);
 				break;
 			}
 
 			if (c == 27) { esc = 1; continue; }
-			if (c == CTRL('C')) { write(sockfd, "\a", 1); continue; }
+			if (c == CTRL('C')) { write(out, "\a", 1); continue; }
 
 			// Back word, backspace/delete
 			if (c == CTRL('W') || c == CTRL('H') || c == 0x7f)
@@ -983,7 +1043,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				{
 					if (l == 0 || cursor == 0)
 					{
-						write(sockfd, "\a", 1);
+						write(out, "\a", 1);
 						continue;
 					}
 
@@ -998,7 +1058,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 						{
 							cmd[--cursor] = 0;
 							if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-								write(sockfd, "\b \b", 3);
+								write(out, "\b \b", 3);
 						}
 						else
 						{
@@ -1007,11 +1067,11 @@ int cli_loop(struct cli_def *cli, int sockfd)
 							if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
 							{
 								for (i = cursor; i <= l; i++) cmd[i] = cmd[i+1];
-								write(sockfd, "\b", 1);
-								write(sockfd, cmd + cursor, strlen(cmd + cursor));
-								write(sockfd, " ", 1);
+								write(out, "\b", 1);
+								write(out, cmd + cursor, strlen(cmd + cursor));
+								write(out, " ", 1);
 								for (i = 0; i <= strlen(cmd + cursor); i++)
-									write(sockfd, "\b", 1);
+									write(out, "\b", 1);
 							}
 						}
 						l--;
@@ -1030,10 +1090,10 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				if (cli->state == STATE_PASSWORD || cli->state == STATE_ENABLE_PASSWORD)
 					continue;
 
-				write(sockfd, "\r\n", 2);
-				show_prompt(cli, sockfd);
-				write(sockfd, cmd, l);
-				for (i = 0; i < cursorback; i++) write(sockfd, "\b", 1);
+				write(out, "\r\n", 2);
+				show_prompt(cli, out);
+				write(out, cmd, l);
+				for (i = 0; i < cursorback; i++) write(out, "\b", 1);
 				continue;
 			}
 
@@ -1046,7 +1106,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				}
 				else
 				{
-					cli_clear_line(sockfd, cmd, l, cursor);
+					cli_clear_line(out, cmd, l, cursor);
 				}
 				l = 0; cursor = 0;
 				continue;
@@ -1061,8 +1121,8 @@ int cli_loop(struct cli_def *cli, int sockfd)
 			    	if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
 				{
 				    	int c;
-					for (c = cursor; c < l; c++) write(sockfd, " ", 1);
-					for (c = cursor; c < l; c++) write(sockfd, "\b", 1);
+					for (c = cursor; c < l; c++) write(out, " ", 1);
+					for (c = cursor; c < l; c++) write(out, "\b", 1);
 				}
 
 				memset(cmd + cursor, 0, l - cursor);
@@ -1081,7 +1141,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 
 				strcpy(cmd, "quit");
 				l = cursor = strlen(cmd);
-				write(sockfd, "quit\r\n", l + 2);
+				write(out, "quit\r\n", l + 2);
 				break;
 			}
 
@@ -1090,7 +1150,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 			{
 				if (cli->mode != MODE_EXEC)
 				{
-					cli_clear_line(sockfd, cmd, l, cursor);
+					cli_clear_line(out, cmd, l, cursor);
 					cli_set_configmode(cli, MODE_EXEC, NULL);
 					cli->showprompt = 1;
 				}
@@ -1107,50 +1167,63 @@ int cli_loop(struct cli_def *cli, int sockfd)
 					continue;
 
 				if (cursor != l) continue;
+                                if (*(cmd + cursor - 1) == ' ') continue;
 
 				if (l > 0)
-					num_completions = cli_get_completions(cmd, completions, 128);
+					num_completions = cli_get_completions(cli, cmd, completions, 128);
 
 				if (num_completions == 0)
 				{
-					write(sockfd, "\a", 1);
+					write(out, "\a", 1);
 				}
 				else if (num_completions == 1)
 				{
 					// Single completion
-					int i;
-					for (i = l; i > 0; i--, cursor--)
-					{
-						write(sockfd, "\b", 1);
-						if (i == ' ') break;
-					}
-					strcpy((cmd + i), completions[0]);
-					l += strlen(completions[0]);
-					cursor = l;
-					write(sockfd, completions[0], strlen(completions[0]));
+                                        int i;
+                                        for (i = l; i > 0; i--, cursor--)
+                                        {
+                                                if (*(cmd + i) == ' ') break;
+                                                write(out, "\b", 1);
+                                        }
+                                        
+                                        if (i)
+                                        {
+                                                cli_write_space(out, cmd, cursor);
+                                                cursor++;
+                                        }
+
+                                        strcpy((cmd + cursor), completions[0]);
+                                        cursor += strlen(completions[0]);
+                                        l = cursor;
+                                        write(out, completions[0], strlen(completions[0]));
+
+                                        cli_write_space(out, cmd, cursor);
+                                        cursor++;
+                                        l++;
 				}
 				else if (lastchar == CTRL('I'))
 				{
 					// double tab
 					int i;
-					write(sockfd, "\r\n", 2);
+					write(out, "\r\n", 2);
 					for (i = 0; i < num_completions; i++)
 					{
-						write(sockfd, completions[i], strlen(completions[i]));
+						write(out, completions[i], strlen(completions[i]));
 						if (i % 4 == 3)
-							write(sockfd, "\r\n", 2);
+							write(out, "\r\n", 2);
 						else
-							write(sockfd, "		", 1);
+							write(out, "		", 1);
 					}
-					if (i % 4 != 3) write(sockfd, "\r\n", 2);
+					if (i % 4 != 3) write(out, "\r\n", 2);
 					cli->showprompt = 1;
 				}
 				else
 				{
 					// More than one completion
 					lastchar = c;
-					write(sockfd, "\a", 1);
+					write(out, "\a", 1);
 				}
+                                
 				continue;
 			}
 
@@ -1194,11 +1267,11 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				if (history_found && cli->history[in_history])
 				{
 					// Show history item
-					cli_clear_line(sockfd, cmd, l, cursor);
+					cli_clear_line(out, cmd, l, cursor);
 					memset(cmd, 0, 4096);
 					strncpy(cmd, cli->history[in_history], 4095);
 					l = cursor = strlen(cmd);
-					write(sockfd, cmd, l);
+					write(out, cmd, l);
 				}
 
 				continue;
@@ -1212,7 +1285,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 					if (cursor)
 					{
 						if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-							write(sockfd, "\b", 1);
+							write(out, "\b", 1);
 
 						cursor--;
 					}
@@ -1222,7 +1295,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 					if (cursor < l)
 					{
 						if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-							write(sockfd, &cmd[cursor], 1);
+							write(out, &cmd[cursor], 1);
 
 						cursor++;
 					}
@@ -1238,8 +1311,8 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				{
 					if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
 					{
-						write(sockfd, "\r", 1);
-						show_prompt(cli, sockfd);
+						write(out, "\r", 1);
+						show_prompt(cli, out);
 					}
 					cursor = 0;
 				}
@@ -1253,7 +1326,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				if (cursor < l)
 				{
 					if (cli->state != STATE_PASSWORD && cli->state != STATE_ENABLE_PASSWORD)
-						write(sockfd, &cmd[cursor], l - cursor);
+						write(out, &cmd[cursor], l - cursor);
 
 					cursor = l;
 				}
@@ -1266,6 +1339,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 			{
 				// End of text
 				cmd[cursor] = c;
+
 				if (l < 4095)
 				{
 					l++;
@@ -1273,7 +1347,7 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				}
 				else
 				{
-					write(sockfd, "\a", 1);
+					write(out, "\a", 1);
 					continue;
 				}
 			}
@@ -1290,9 +1364,9 @@ int cli_loop(struct cli_def *cli, int sockfd)
 					// Write what we've just added
 					cmd[cursor] = c;
 
-					write(sockfd, &cmd[cursor], l - cursor + 1);
+					write(out, &cmd[cursor], l - cursor + 1);
 					for (i = 0; i < (l - cursor + 1); i++)
-						write(sockfd, "\b", 1);
+						write(out, "\b", 1);
 					l++;
 				}
 				else
@@ -1307,12 +1381,12 @@ int cli_loop(struct cli_def *cli, int sockfd)
 				// ?
 				if (c == 63 && cursor == l)
 				{
-					write(sockfd, "\r\n", 2);
+					write(out, "\r\n", 2);
 					oldcmd = cmd;
 					oldl = cursor = l - 1;
 					break;
 				}
-			    	write(sockfd, &c, 1);
+			    	write(out, &c, 1);
 			}
 
 			oldcmd = NULL;

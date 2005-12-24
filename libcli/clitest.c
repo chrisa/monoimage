@@ -1,14 +1,32 @@
 #include <stdio.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <arpa/inet.h>
 #include <string.h>
 #include <unistd.h>
+#include <termios.h>
+#include <errno.h>
 #include "libcli.h"
 
-#define CLITEST_PORT		8000
-
 #define MODE_CONFIG_INT		10
+
+/* set/unset ICANON and ECHO flags */
+void set_canonical(int flag) {
+    struct termios term;
+    
+    if (tcgetattr(STDIN_FILENO, &term) < 0) {
+	fprintf(stderr, "unable to tcgetattr: %s\n", strerror(errno));
+    }
+
+    if (flag) {
+	term.c_lflag |= ICANON;
+	term.c_lflag |= ECHO;
+    } else {
+	term.c_lflag &= ~ICANON;
+	term.c_lflag &= ~ECHO;
+    }
+
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
+	fprintf(stderr, "unable to tcsetattr: %s\n", strerror(errno));
+    }
+}
 
 int cmd_test(struct cli_def *cli, char *command, char *argv[], int argc)
 {
@@ -82,9 +100,6 @@ int main(int argc, char *argv[])
 {
     struct cli_command *c;
     struct cli_def *cli;
-    int s, x;
-    struct sockaddr_in servaddr;
-    int on = 1;
 
     cli = cli_init();
     cli_set_banner(cli, "libcli test environment");
@@ -103,8 +118,8 @@ int main(int argc, char *argv[])
     cli_register_command(cli, NULL, "exit", cmd_config_int_exit, PRIVILEGE_PRIVILEGED, MODE_CONFIG_INT, "Exit from interface configuration");
     cli_register_command(cli, NULL, "address", cmd_test, PRIVILEGE_PRIVILEGED, MODE_CONFIG_INT, "Set IP address");
 
-    cli_set_auth_callback(cli, check_auth);
-    cli_set_enable_callback(cli, check_enable);
+    //cli_set_auth_callback(cli, check_auth);
+    //cli_set_enable_callback(cli, check_enable);
     // Test reading from a file
     {
 	    FILE *fh;
@@ -119,36 +134,10 @@ int main(int argc, char *argv[])
 	    }
     }
 
-    if ((s = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-	perror("socket");
-	return 1;
-    }
-    setsockopt(s, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-    memset(&servaddr, 0, sizeof(servaddr));
-    servaddr.sin_family = AF_INET;
-    servaddr.sin_addr.s_addr = htonl(INADDR_ANY);
-    servaddr.sin_port = htons(CLITEST_PORT);
-    if (bind(s, (struct sockaddr *)&servaddr, sizeof(servaddr)) < 0)
-    {
-	perror("bind");
-	return 1;
-    }
-
-    if (listen(s, 50) < 0)
-    {
-	perror("listen");
-	return 1;
-    }
-
-    printf("Listening on port %d\n", CLITEST_PORT);
-    while ((x = accept(s, NULL, 0)))
-    {
-	cli_loop(cli, x);
-	close(x);
-    }
-
+    set_canonical(0);
+    cli_loop(cli, fileno(stdin), fileno(stdout));
+    set_canonical(1);
+        
     cli_done(cli);
     return 0;
 }
