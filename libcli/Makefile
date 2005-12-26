@@ -24,14 +24,14 @@ $(LIB): libcli.o
 	ln -s $(LIB).$(MAJOR).$(MINOR) $(LIB)
 
 $(STATICLIB): libcli.o
-	ar cru libcli.a libcli.o
+	ar cru libcli.a libcli.o 
 	ranlib libcli.a
 
 %.o: %.c
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -o $@ -c $^
 
 clitest: clitest.o $(STATICLIB)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^ -L. -lcli
+	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^
 
 clean:
 	rm -f *.o $(LIB)* clitest
