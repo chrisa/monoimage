@@ -12,55 +12,10 @@
 #include <string.h>
 #include <time.h>
 #include <confuse.h>
+#include <libcli.h>
 #include "monoboot.h"
 
 /* $Id$ */
-
-/*
- * these two functions are ripped off from confuse.c ....
- * for some reason there's no public function to add a 
- * section to the in-memory config
- * ...
- */
-  
-static cfg_opt_t *cfg_dupopts(cfg_opt_t *opts)
-{
-	int n;
-	cfg_opt_t *dupopts;
-
-	for(n = 0; opts[n].name; n++)
-		/* do nothing */ ;
-	dupopts = (cfg_opt_t *)malloc(++n * sizeof(cfg_opt_t));
-	memcpy(dupopts, opts, n * sizeof(cfg_opt_t));
-	return dupopts;
-}
-
-void add_section(cfg_t *cfg, char *name, char *title) {
-    cfg_opt_t *opt;
-    cfg_value_t *val;
-    int i;
-    
-    for (i = 0; cfg->opts[i].type != CFGT_NONE; i++) {
-	if (strncmp(cfg->opts[i].name, name, strlen(name)) == 0) {
-	    opt = &cfg->opts[i];
-	}
-    }
-    opt->values = (cfg_value_t **)realloc(opt->values, (opt->nvalues+1) * sizeof(cfg_value_t *));
-    opt->values[opt->nvalues] = (cfg_value_t *)malloc(sizeof(cfg_value_t));
-    memset(opt->values[opt->nvalues], 0, sizeof(cfg_value_t));
-    val = opt->values[opt->nvalues++];
-    
-    cfg_free(val->section);
-    val->section = (cfg_t *)malloc(sizeof(cfg_t));
-    memset(val->section, 0, sizeof(cfg_t));
-    val->section->opts = cfg_dupopts(opt->subopts);
-    val->section->flags = cfg->flags;
-    val->section->filename = cfg->filename ? strdup(cfg->filename) : 0;
-    val->section->line = cfg->line;
-    val->section->errfunc = cfg->errfunc;
-    val->section->name = strdup(opt->name);
-    val->section->title = strndup(title, strlen(title));
-}
 
 int check_image_tag(cfg_t *cfg, char *tag) { 
     int n, m;
@@ -81,24 +36,19 @@ int check_image_tag(cfg_t *cfg, char *tag) {
     }
 }
 
-char *get_disk_ls(cfg_t *cfg) {
+int cmd_show_disk (struct cli_def *cli, cfg_t *cfg, char **cmdline) {
     struct stat s;
     struct statvfs sf;
     struct dirent *f;
     DIR *d;
-    char *listing;
-    char line[MB_PATH_MAX];
     int i, used;
 
     d = opendir("/images");
     if (d == NULL) {
-	MB_DEBUG("[mb] get_disk_ls: failed to opendir /images: %s\n", strerror(errno));
-	return strdup("image volume not accessible\n");
+	MB_DEBUG("[mb] cmd_show_disk: failed to opendir /images: %s\n", strerror(errno));
+        return -1;
     }
     chdir("/images");
-
-    listing = (char *)malloc(sizeof(char) * MB_PATH_MAX);
-    strcpy(listing, "\nSystem flash directory:\n    Length Name\n");
     
     i = 1;
     used = 0;
@@ -108,56 +58,41 @@ char *get_disk_ls(cfg_t *cfg) {
 	    strncmp("lost+found", f->d_name, 10) != 0) {
 	    i++;
 	    if (stat(f->d_name, &s) != 0) {
-		MB_DEBUG("[mb] get_disk_ls: stat failed: %s\n", strerror(errno));
-		return NULL;
+		MB_DEBUG("[mb] cmd_show_disk: stat failed: %s\n", strerror(errno));
+		return -1;
 	    }
-	    listing = (char *)realloc(listing, sizeof(char) * MB_PATH_MAX * i); 
-	    if (!listing) {
-		MB_DEBUG("[mb] get_disk_ls: realloc failed: %s\n", strerror(errno));
-		return NULL;
-	    }
-	    sprintf(line, "%10d %s\n", (int)s.st_size, f->d_name);
+	    fprintf(cli->client, "%10d %s\n", (int)s.st_size, f->d_name);
 	    used += (int)s.st_size;
-	    strncat(listing, line, strlen(line));
 	}
     }
     chdir("/");
 
     if (statvfs("/images/.", &sf) != 0) {
-	MB_DEBUG("[mb] get_disk_ls: statfs failed: %s\n", strerror(errno));
-	return NULL;
+	MB_DEBUG("[mb] cmd_show_disk: statfs failed: %s\n", strerror(errno));
+	return -1;
     }
-    listing = (char *)realloc(listing, sizeof(char) * MB_PATH_MAX * ++i);
-    sprintf(line, "[%d bytes used, %ld available, %ld total]\n\n",
+    fprintf(cli->client, "[%d bytes used, %ld available, %ld total]\n\n",
 	    ( used ),
 	    ( sf.f_bavail ),
 	    ( sf.f_blocks ));
-    strncat(listing, line, strlen(line));
     
-    if (listing == NULL) {
-	return strdup("no files\n");
-    } else {
-	return listing;
-    }
+    return 0;
 }
 
-char *get_startup_config(cfg_t *cfg) {
-    char config[MB_CONFIG_MAX];
-    char buf[MB_CONFIG_MAX];
+int cmd_show_start(struct cli_def *cli, cfg_t *cfg, char **cmdline) {
     FILE *fp = fopen(MB_CONF, "r");
+    char buf[MB_CONFIG_MAX];
     while(fgets(buf, MB_CONFIG_MAX, fp) != NULL) {
-	strncat(config, buf, strlen(buf));
+            fprintf(cli->client, buf);
     }
     fclose(fp);
-    return strdup(config);
+    return 0;
 }
 
-char *get_running_config(cfg_t *cfg) {
-    char config[MB_CONFIG_MAX];
-    char buf[MB_CONFIG_MAX];
+int cmd_show_run(struct cli_def *cli, cfg_t *cfg, char **cmdline) {
     int sec_count, n;
 
-    sprintf(config, "version = %ld\ndelay = %ld\n\nbootonce = %s\ntryonce = %s\n\nfallback = %s\ndefault = %s\n\nlasttry = %s\nlastboot = %s\n", 
+    fprintf(cli->client, "version = %ld\ndelay = %ld\n\nbootonce = %s\ntryonce = %s\n\nfallback = %s\ndefault = %s\n\nlasttry = %s\nlastboot = %s\n", 
 	    cfg_getint(cfg,"version"), 
 	    cfg_getint(cfg,"delay"), 
 	    cfg_getstr(cfg,"bootonce"),
@@ -170,41 +105,35 @@ char *get_running_config(cfg_t *cfg) {
     sec_count = cfg_size(cfg, "image");
     for (n = 0; n < sec_count; n++) {
 	cfg_t *image = cfg_getnsec(cfg, "image", n);
-	sprintf(buf, "\nimage %s {\n  filename = %s\n}\n", 
+	fprintf(cli->client, "\nimage %s {\n  filename = %s\n}\n", 
 		cfg_title(image), 
 		cfg_getstr(image, "filename"));
-	strncat(config, buf, strlen(buf));
     }
 
     sec_count = cfg_size(cfg, "network");
     for (n = 0; n < sec_count; n++) {
 	cfg_t *network = cfg_getnsec(cfg, "network", n);
-	sprintf(buf, "\nnetwork %s {\n  address = %s\n  gateway = %s\n}\n\n", 
+	fprintf(cli->client, "\nnetwork %s {\n  address = %s\n  gateway = %s\n}\n\n", 
 		cfg_title(network), 
 		cfg_getstr(network, "address"),
 		cfg_getstr(network, "gateway"));
-	strncat(config, buf, strlen(buf));
     }
 
-    strcat(config, "line = { ");
     sec_count = cfg_size(cfg, "line");
     for (n = 0; n < sec_count; n++) {
 	if (n == (sec_count - 1)) {
-	    sprintf(buf, "%s", cfg_getnstr(cfg, "line", n));
+	    fprintf(cli->client, "%s", cfg_getnstr(cfg, "line", n));
 	} else {
-	    sprintf(buf, "%s, ", cfg_getnstr(cfg, "line", n));
+	    fprintf(cli->client, "%s, ", cfg_getnstr(cfg, "line", n));
 	}
-	strncat(config, buf, strlen(buf));
     }
-    strcat(config, " }\n\n");
     
-    sprintf(buf, "password = %s\n\n", cfg_getstr(cfg, "password"));
-    strncat(config, buf, strlen(buf));
+    fprintf(cli->client, "password = %s\n\n", cfg_getstr(cfg, "password"));
     
-    return strdup(config);
+    return 0;
 }
 
-int cmd_boot(cfg_t *cfg, char **cmdline) {
+int cmd_boot(struct cli_def *cli, cfg_t *cfg, char **cmdline) {
     int n, images;
     char *image_tag;
     char image_file[MB_PATH_MAX];
@@ -299,39 +228,13 @@ int cmd_boot(cfg_t *cfg, char **cmdline) {
     return -1;
 }
 
-int cmd_show(cfg_t *cfg, char **cmdline) {
-    char *p = NULL;
-
-    if (cmdline[1] == NULL) {
-	return -1;
-    } else {
-	if (strncmp(cmdline[1], "r", 1) == 0) {
-	    /* show run */
-	    p = get_running_config(cfg);
-	}
-	if (strncmp(cmdline[1], "s", 1) == 0) {
-	    /* show start */
-	    p = get_startup_config(cfg);
-	}
-	if (strncmp(cmdline[1], "v", 1) == 0) {
-	    p = strdup("monoboot v0\n");
-	}
-	if (strncmp(cmdline[1], "d", 1) == 0) {
-	    p = get_disk_ls(cfg);
-	}
-	
-	if (p) {
-	    printf("%s", p);
-	    free(p);
-	} else {
-	    printf("%% no such command\n");
-	    return -1;
-	}
-    }
-    return 0;
+int cmd_show_ver(struct cli_def *cli, cfg_t *cfg, char **cmdline)
+{
+        fprintf(cli->client, "monoboot v0\n");
+        return 0;
 }
 
-int cmd_copy(cfg_t *cfg, char **cmdline) {
+int cmd_copy(struct cli_def *cli, cfg_t *cfg, char **cmdline) {
     if (cmdline[1] && cmdline[2]) {
 	if (strncmp(cmdline[1], "tftp", 4) == 0 || 
 	    strncmp(cmdline[2], "tftp", 4) == 0 ) {
@@ -345,221 +248,203 @@ int cmd_copy(cfg_t *cfg, char **cmdline) {
     return 0;
 }
 
-int cmd_exit(cfg_t *cfg, char **cmdline) {
-    if (get_mb_mode() == MB_MODE_CONF) {
-	set_mb_mode(MB_MODE_EXEC);
-	set_mb_prompt("mb> ");
-    } else if (get_mb_mode() == MB_MODE_EXEC) {
-	do_exit();
-    } else if (get_mb_mode() == MB_MODE_CONF_IMAGE) {
-	set_mb_mode(MB_MODE_CONF);
-	set_mb_prompt("conf> ");
-    } else if (get_mb_mode() == MB_MODE_CONF_NET) {
-	set_mb_mode(MB_MODE_CONF);
-	set_mb_prompt("conf> ");
-	do_netconf(cfg);
-    } else {
-	/* not sure what mode we're in then */
-    }
-    return 0;
-}
-
-int cmd_conf(cfg_t *cfg, char **cmdline) {
+int cmd_conf(struct cli_def *cli, cfg_t *cfg, char **cmdline) {
     char prompt[MB_PROMPT_MAX];
     char section_name[MB_PROMPT_MAX];
     char *current_section;
     cfg_t *section;
     int sections, n, m;
 
-    if (get_mb_mode() == MB_MODE_EXEC) {
-	/* set config mode */
-	set_mb_prompt("conf> ");
-	set_mb_mode(MB_MODE_CONF);
-    } else if (get_mb_mode() == MB_MODE_CONF) {
+/*     if (get_mb_mode() == MB_MODE_EXEC) { */
+/* 	/\* set config mode *\/ */
+/* 	set_mb_prompt("conf> "); */
+/* 	set_mb_mode(MB_MODE_CONF); */
+/*     } else if (get_mb_mode() == MB_MODE_CONF) { */
 
-	/* actually process config commands */
-	if (cmdline[0]) {
+/* 	/\* actually process config commands *\/ */
+/* 	if (cmdline[0]) { */
 	    
-	    if (strncmp(cmdline[0], "delay", 5) == 0) {
-		if (cmdline[1] && atoi(cmdline[1]) >= 0) {
-		    cfg_setint(cfg, "delay", atoi(cmdline[1]));
-		    printf("%s -> %ld [ok]\n", "delay", cfg_getint(cfg, "delay"));
-		}
-	    }
+/* 	    if (strncmp(cmdline[0], "delay", 5) == 0) { */
+/* 		if (cmdline[1] && atoi(cmdline[1]) >= 0) { */
+/* 		    cfg_setint(cfg, "delay", atoi(cmdline[1])); */
+/* 		    printf("%s -> %ld [ok]\n", "delay", cfg_getint(cfg, "delay")); */
+/* 		} */
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "bootonce", 8) == 0) {
-		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
-		    cfg_setstr(cfg, "bootonce", cmdline[1]);
-		    printf("%s -> %s [ok]\n", "bootonce", cmdline[1]);
-		} else {
-		    printf("no such tag %s\n", cmdline[1]);
-		}
-	    }
+/* 	    if (strncmp(cmdline[0], "bootonce", 8) == 0) { */
+/* 		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) { */
+/* 		    cfg_setstr(cfg, "bootonce", cmdline[1]); */
+/* 		    printf("%s -> %s [ok]\n", "bootonce", cmdline[1]); */
+/* 		} else { */
+/* 		    printf("no such tag %s\n", cmdline[1]); */
+/* 		} */
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "default", 7) == 0) {
-		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
-		    cfg_setstr(cfg, "default", cmdline[1]);
-		    printf("%s -> %s [ok]\n", "default", cmdline[1]);
-		} else {
-		    printf("no such tag %s\n", cmdline[1]);
-		}
+/* 	    if (strncmp(cmdline[0], "default", 7) == 0) { */
+/* 		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) { */
+/* 		    cfg_setstr(cfg, "default", cmdline[1]); */
+/* 		    printf("%s -> %s [ok]\n", "default", cmdline[1]); */
+/* 		} else { */
+/* 		    printf("no such tag %s\n", cmdline[1]); */
+/* 		} */
 		
-	    }
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "fallback", 8) == 0) {
-		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) {
-		    cfg_setstr(cfg, "fallback", cmdline[1]);
-		    printf("%s -> %s [ok]\n", "fallback", cmdline[1]);
-		} else {
-		    printf("no such tag %s\n", cmdline[1]);
-		}
-	    }
+/* 	    if (strncmp(cmdline[0], "fallback", 8) == 0) { */
+/* 		if (cmdline[1] && check_image_tag(cfg, cmdline[1])) { */
+/* 		    cfg_setstr(cfg, "fallback", cmdline[1]); */
+/* 		    printf("%s -> %s [ok]\n", "fallback", cmdline[1]); */
+/* 		} else { */
+/* 		    printf("no such tag %s\n", cmdline[1]); */
+/* 		} */
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "tryonce", 7) == 0) {
-		if (cmdline[1] && (strncmp(cmdline[1], "yes", 3) == 0 || strncmp(cmdline[1], "no", 2) == 0)) {
-		    cfg_setstr(cfg, "tryonce", cmdline[1]);
-		    printf("%s -> %s [ok]\n", "tryonce", cmdline[1]);
-		} else {
-		    printf("tryonce must be 'yes' or 'no'\n");
-		}
-	    }
+/* 	    if (strncmp(cmdline[0], "tryonce", 7) == 0) { */
+/* 		if (cmdline[1] && (strncmp(cmdline[1], "yes", 3) == 0 || strncmp(cmdline[1], "no", 2) == 0)) { */
+/* 		    cfg_setstr(cfg, "tryonce", cmdline[1]); */
+/* 		    printf("%s -> %s [ok]\n", "tryonce", cmdline[1]); */
+/* 		} else { */
+/* 		    printf("tryonce must be 'yes' or 'no'\n"); */
+/* 		} */
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "tryonce", 7) == 0) {
-		if (cmdline[1] && (strncmp(cmdline[1], "yes", 3) == 0 || strncmp(cmdline[1], "no", 2) == 0)) {
-		    cfg_setstr(cfg, "tryonce", cmdline[1]);
-		    printf("%s -> %s [ok]\n", "tryonce", cmdline[1]);
-		} else {
-		    printf("tryonce must be 'yes' or 'no'\n");
-		}
-	    }
+/* 	    if (strncmp(cmdline[0], "tryonce", 7) == 0) { */
+/* 		if (cmdline[1] && (strncmp(cmdline[1], "yes", 3) == 0 || strncmp(cmdline[1], "no", 2) == 0)) { */
+/* 		    cfg_setstr(cfg, "tryonce", cmdline[1]); */
+/* 		    printf("%s -> %s [ok]\n", "tryonce", cmdline[1]); */
+/* 		} else { */
+/* 		    printf("tryonce must be 'yes' or 'no'\n"); */
+/* 		} */
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "password", 8) == 0) {
-		if (cmdline[1]) {
-		    cfg_setstr(cfg, "password", cmdline[1]);
-		    printf("%s -> %s [ok]\n", "password", cmdline[1]);
-		}
-	    }
+/* 	    if (strncmp(cmdline[0], "password", 8) == 0) { */
+/* 		if (cmdline[1]) { */
+/* 		    cfg_setstr(cfg, "password", cmdline[1]); */
+/* 		    printf("%s -> %s [ok]\n", "password", cmdline[1]); */
+/* 		} */
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "image", 5) == 0) {
-		if (cmdline[1]) {
-		    /* set image config mode */
+/* 	    if (strncmp(cmdline[0], "image", 5) == 0) { */
+/* 		if (cmdline[1]) { */
+/* 		    /\* set image config mode *\/ */
 
-		    /* truncate image name */
-		    strncpy(section_name, cmdline[1], MB_PROMPT_MAX - 7);
-		    if (strlen(cmdline[1]) < (MB_PROMPT_MAX - 7)) {
-			section_name[strlen(cmdline[1])] = '\0';
-		    } else {
-			section_name[(MB_PROMPT_MAX - 7)] = '\0';
-		    }
-		    /* set the prompt to include the image name */
-		    sprintf(prompt, "conf-%s> ", section_name);
-		    set_mb_prompt(prompt);
-		    set_mb_mode(MB_MODE_CONF_IMAGE);
-		    set_mb_image(section_name);
-		}
-	    }
+/* 		    /\* truncate image name *\/ */
+/* 		    strncpy(section_name, cmdline[1], MB_PROMPT_MAX - 7); */
+/* 		    if (strlen(cmdline[1]) < (MB_PROMPT_MAX - 7)) { */
+/* 			section_name[strlen(cmdline[1])] = '\0'; */
+/* 		    } else { */
+/* 			section_name[(MB_PROMPT_MAX - 7)] = '\0'; */
+/* 		    } */
+/* 		    /\* set the prompt to include the image name *\/ */
+/* 		    sprintf(prompt, "conf-%s> ", section_name); */
+/* 		    set_mb_prompt(prompt); */
+/* 		    set_mb_mode(MB_MODE_CONF_IMAGE); */
+/* 		    set_mb_image(section_name); */
+/* 		} */
+/* 	    } */
 
-	    if (strncmp(cmdline[0], "network", 7) == 0) {
-		if (cmdline[1]) {
-		    /* set network config mode */
+/* 	    if (strncmp(cmdline[0], "network", 7) == 0) { */
+/* 		if (cmdline[1]) { */
+/* 		    /\* set network config mode *\/ */
 
-		    /* truncate network name */
-		    strncpy(section_name, cmdline[1], MB_PROMPT_MAX - 7);
-		    if (strlen(cmdline[1]) < (MB_PROMPT_MAX - 7)) {
-			section_name[strlen(cmdline[1])] = '\0';
-		    } else {
-			section_name[(MB_PROMPT_MAX - 7)] = '\0';
-		    }
-		    /* set the prompt to include the network name */
-		    sprintf(prompt, "conf-%s> ", section_name);
-		    set_mb_prompt(prompt);
-		    set_mb_mode(MB_MODE_CONF_NET);
-		    set_mb_network(section_name);
-		}
-	    }
-	}
-    } else if (get_mb_mode() == MB_MODE_CONF_IMAGE) {
-        current_section = get_mb_image();
-	if (strncmp(cmdline[0], "filename", 8) == 0) {
-	    if (cmdline[1]) {
-		MB_DEBUG("updating filename to %s for image %s\n", cmdline[1], current_section);
-		sections = cfg_size(cfg, "image");
-		m = 0;
-		for (n = 0; n < sections; n++) {
-		    section = cfg_getnsec(cfg, "image", n);
-		    if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) {
-			cfg_setstr(section, "filename", cmdline[1]);
-			m++;
-		    }
-		}
-		if (m) {
-		    printf("%s/filename -> %s [ok]\n", current_section, cmdline[1]);
-		} else {
-		    /* new image section */
-		    add_section(cfg, "image", current_section);
-		    printf("new image %s added [ok]\n", current_section);
+/* 		    /\* truncate network name *\/ */
+/* 		    strncpy(section_name, cmdline[1], MB_PROMPT_MAX - 7); */
+/* 		    if (strlen(cmdline[1]) < (MB_PROMPT_MAX - 7)) { */
+/* 			section_name[strlen(cmdline[1])] = '\0'; */
+/* 		    } else { */
+/* 			section_name[(MB_PROMPT_MAX - 7)] = '\0'; */
+/* 		    } */
+/* 		    /\* set the prompt to include the network name *\/ */
+/* 		    sprintf(prompt, "conf-%s> ", section_name); */
+/* 		    set_mb_prompt(prompt); */
+/* 		    set_mb_mode(MB_MODE_CONF_NET); */
+/* 		    set_mb_network(section_name); */
+/* 		} */
+/* 	    } */
+/* 	} */
+/*     } else if (get_mb_mode() == MB_MODE_CONF_IMAGE) { */
+/*         current_section = get_mb_image(); */
+/* 	if (strncmp(cmdline[0], "filename", 8) == 0) { */
+/* 	    if (cmdline[1]) { */
+/* 		MB_DEBUG("updating filename to %s for image %s\n", cmdline[1], current_section); */
+/* 		sections = cfg_size(cfg, "image"); */
+/* 		m = 0; */
+/* 		for (n = 0; n < sections; n++) { */
+/* 		    section = cfg_getnsec(cfg, "image", n); */
+/* 		    if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) { */
+/* 			cfg_setstr(section, "filename", cmdline[1]); */
+/* 			m++; */
+/* 		    } */
+/* 		} */
+/* 		if (m) { */
+/* 		    printf("%s/filename -> %s [ok]\n", current_section, cmdline[1]); */
+/* 		} else { */
+/* 		    /\* new image section *\/ */
+/* 		    add_section(cfg, "image", current_section); */
+/* 		    printf("new image %s added [ok]\n", current_section); */
 		    
-		    sections = cfg_size(cfg, "image");
-		    m = 0;
-		    for (n = 0; n < sections; n++) {
-			section = cfg_getnsec(cfg, "image", n);
-			if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) {
-			    cfg_setstr(section, "filename", cmdline[1]);
-			    m++;
-			}
-		    }
-		    if (m) {
-			printf("%s/filename -> %s [ok]\n", current_section, cmdline[1]);
-		    } else {
-			MB_DEBUG("set filename failed\n");
-		    }
-		}
-	    }
-	}
-    } else if (get_mb_mode() == MB_MODE_CONF_NET) {
-        current_section = get_mb_network();
-	if (strncmp(cmdline[0], "address", 7) == 0 || 
-	    strncmp(cmdline[0], "gateway", 7) == 0 ) {
-	    if (cmdline[1]) {
+/* 		    sections = cfg_size(cfg, "image"); */
+/* 		    m = 0; */
+/* 		    for (n = 0; n < sections; n++) { */
+/* 			section = cfg_getnsec(cfg, "image", n); */
+/* 			if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) { */
+/* 			    cfg_setstr(section, "filename", cmdline[1]); */
+/* 			    m++; */
+/* 			} */
+/* 		    } */
+/* 		    if (m) { */
+/* 			printf("%s/filename -> %s [ok]\n", current_section, cmdline[1]); */
+/* 		    } else { */
+/* 			MB_DEBUG("set filename failed\n"); */
+/* 		    } */
+/* 		} */
+/* 	    } */
+/* 	} */
+/*     } else if (get_mb_mode() == MB_MODE_CONF_NET) { */
+/*         current_section = get_mb_network(); */
+/* 	if (strncmp(cmdline[0], "address", 7) == 0 ||  */
+/* 	    strncmp(cmdline[0], "gateway", 7) == 0 ) { */
+/* 	    if (cmdline[1]) { */
 		
-		sections = cfg_size(cfg, "network");
-		m = 0;
-		for (n = 0; n < sections; n++) {
-		    section = cfg_getnsec(cfg, "network", n);
-		    if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) {
-			cfg_setstr(section, cmdline[0], cmdline[1]);
-			m++;
-		    }
-		}
-		if (m) {
-		    printf("%s/%s -> %s [ok]\n", current_section, cmdline[0], cmdline[1]);
-		} else {
-		    /* new network section */
-		    add_section(cfg, "network", current_section);
-		    printf("new network %s added [ok]\n", current_section);
+/* 		sections = cfg_size(cfg, "network"); */
+/* 		m = 0; */
+/* 		for (n = 0; n < sections; n++) { */
+/* 		    section = cfg_getnsec(cfg, "network", n); */
+/* 		    if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) { */
+/* 			cfg_setstr(section, cmdline[0], cmdline[1]); */
+/* 			m++; */
+/* 		    } */
+/* 		} */
+/* 		if (m) { */
+/* 		    printf("%s/%s -> %s [ok]\n", current_section, cmdline[0], cmdline[1]); */
+/* 		} else { */
+/* 		    /\* new network section *\/ */
+/* 		    add_section(cfg, "network", current_section); */
+/* 		    printf("new network %s added [ok]\n", current_section); */
 		    
-		    sections = cfg_size(cfg, "network");
-		    m = 0;
-		    for (n = 0; n < sections; n++) {
-			section = cfg_getnsec(cfg, "network", n);
-			if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) {
-			    cfg_setstr(section, cmdline[0], cmdline[1]);
-			    m++;
-			}
-		    }
-		    if (m) {
-			printf("%s/%s -> %s [ok]\n", current_section, cmdline[0], cmdline[1]);
-		    } else {
-			MB_DEBUG("set %s failed\n", cmdline[0]);
-		    }
-		}
-	    }
-	}
-    }    
+/* 		    sections = cfg_size(cfg, "network"); */
+/* 		    m = 0; */
+/* 		    for (n = 0; n < sections; n++) { */
+/* 			section = cfg_getnsec(cfg, "network", n); */
+/* 			if (strncmp(cfg_title(section), current_section, strlen(cfg_title(section))) == 0) { */
+/* 			    cfg_setstr(section, cmdline[0], cmdline[1]); */
+/* 			    m++; */
+/* 			} */
+/* 		    } */
+/* 		    if (m) { */
+/* 			printf("%s/%s -> %s [ok]\n", current_section, cmdline[0], cmdline[1]); */
+/* 		    } else { */
+/* 			MB_DEBUG("set %s failed\n", cmdline[0]); */
+/* 		    } */
+/* 		} */
+/* 	    } */
+/*	} */
+/*    }     */
     return 0;
 }
 
-int cmd_write(cfg_t *cfg, char **cmdline) {
+int cmd_write(struct cli_def *cli, cfg_t *cfg, char **cmdline) 
+{
     FILE *fp;
     char *config;
     char timestr[MB_TIMESTR_MAX];
@@ -585,7 +470,8 @@ int cmd_write(cfg_t *cfg, char **cmdline) {
 	MB_DEBUG("[mb] cmd_write: strftime failed.\n");
     }
 
-    config = get_running_config(cfg);
+    //config = get_running_config(cfg); XXX
+    config = "";
     fprintf(fp, "# config saved by monoboot at %s\n\n", timestr);
     fputs(config, fp);
     fclose(fp);
@@ -601,7 +487,7 @@ int cmd_write(cfg_t *cfg, char **cmdline) {
     return 0;
 }
 
-int cmd_shell(cfg_t *cfg, char **cmdline) {
+int cmd_shell(struct cli_def *cli, cfg_t *cfg, char **cmdline) {
     	MB_DEBUG("[mb] cmd_shell: starting ash\n");
 	do_exec("/bin/ash", "ash", 0);
 	MB_DEBUG("[mb] cmd_shell: ash exited\n");

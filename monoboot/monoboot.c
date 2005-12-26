@@ -32,14 +32,13 @@
 #include <getopt.h>
 #include <confuse.h>
 #include <malloc.h>
-#include <signal.h>
-#include <setjmp.h>
-#include <termios.h>
+
 #include "mbconf.h"
 #include "monoboot.h"
 
+cfg_t *cfg;
+
 int main(int argc, char **argv) {
-    cfg_t *cfg;
     int interact = 1;
     char conf_path[MB_PATH_MAX];
     char bootimage[MB_IMAGE_MAX];
@@ -112,14 +111,13 @@ int main(int argc, char **argv) {
     } else {
 	MB_DEBUG("[mb] main: booting image\n");
 	cmdline[1] = bootimage;
-	cmd_boot(cfg, cmdline);
+	cmd_boot(NULL, cfg, cmdline);
     }
     return 0;
 }
 
 /* invoke confuse, parse file */
 cfg_t* load_config(char *file) {
-    cfg_t *cfg;
     int ret;
 
     cfg = cfg_init(opts, CFGF_NOCASE);
@@ -173,7 +171,7 @@ int check_last(cfg_t *cfg, char *image) {
 
 /* write config back to file, with shimmying */
 void save_config(cfg_t *cfg) {
-    cmd_write(cfg, NULL);
+  cmd_write(NULL, cfg, NULL);
 }
 
 /* clean up */
@@ -181,64 +179,3 @@ void drop_config(cfg_t *cfg) {
     cfg_free(cfg);
 }
 
-/* set/unset ICANON flag */
-void set_canonical(int flag) {
-    struct termios term;
-    
-    if (tcgetattr(STDIN_FILENO, &term) < 0) {
-	fprintf(stderr, "unable to tcgetattr: %s\n", strerror(errno));
-    }
-
-    if (flag) {
-	term.c_lflag |= ICANON;
-    } else {
-	term.c_lflag &= ~ICANON;
-    }
-
-    if (tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
-	fprintf(stderr, "unable to tcsetattr: %s\n", strerror(errno));
-    }
-}
-
-/* get keypress with timeout */
-
-static jmp_buf env_alrm;
-static void sig_alrm(int signo) {
-    longjmp(env_alrm, 1);
-}
-  
-int get_keypress (int delay) {
-    int c = 0;
-    
-    if (!delay)
-	return 1;
-
-    set_canonical(0);
-    if (setvbuf(stdin, NULL, _IONBF, 0) < 0) {
-	fprintf(stderr, "unable to setvbuf: %s\n", strerror(errno));
-    }
-    
-    printf("MONOBOOT booting in %ds\npress a key for a shell", delay);
-    while (delay--) {
-	printf(".");
-        if (signal(SIGALRM, sig_alrm) == SIG_ERR) {
-	    fprintf(stderr, "signal: %s\n", strerror(errno));
-	    set_canonical(1);
-	    return(-1);
-	}
-	if (setjmp(env_alrm) == 0) {
-	    alarm(1);
-	    c = getchar();
-	}
-	if (c) {
-	    alarm(0);
-	    printf("\ngot keypress\n");
-	    set_canonical(1);
-	    return(0);
-	}
-    }
-
-    printf("\n");
-    set_canonical(1);
-    return(1);
-}

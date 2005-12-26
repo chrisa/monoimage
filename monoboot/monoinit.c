@@ -40,7 +40,7 @@ cfg_t* load_config(char *file)
 /* write config back to file, with shimmying */
 void save_config(cfg_t *cfg) 
 {
-    cmd_write(cfg, NULL);
+  cmd_write(NULL, cfg, NULL);
 }
 
 /* clean up */

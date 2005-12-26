@@ -1,226 +1,175 @@
 #define C99_SOURCE
-#include <stdlib.h>
-#include <errno.h>
 #include <stdio.h>
-#include <readline/readline.h>
-#include <readline/history.h>
+#include <unistd.h>
+#include <errno.h>
+#include <string.h>
+#include <stdlib.h>
+#include <termios.h>
+#include <signal.h>
+#include <setjmp.h>
+#include <libcli.h>
 #include <confuse.h>
 
 #include "monoboot.h"
 
+extern cfg_t *cfg;
+
 /* $Id$ */
 
-/* global pointer for lines read with readline */
-char *line_read = (char *)NULL;
-/* the current prompt */
-char mb_prompt[MB_PROMPT_MAX];
-/* the current mode */
-int mb_mode;
-/* the current image being edited */
-char *mb_image;
-/* the current network being edited */
-char *mb_network;
+/* get keypress with timeout */
 
-/* tokenise a command line, return a null terminated list
-   of char *s */
-
-char **split_cmdline (char *string) {
-    char *cp;
-    char **vec = NULL;
-    int i = 0;
-
-    if (string == NULL)
-	return NULL;
+static jmp_buf env_alrm;
+static void sig_alrm(int signo) {
+    longjmp(env_alrm, 1);
+}
+  
+int get_keypress (int delay) {
+    int c = 0;
     
-    cp = string;
+    if (!delay)
+	return 1;
 
-    /* Skip white spaces. */
-    while (isspace ((int) *cp) && *cp != '\0')
-	cp++;
+    set_canonical(0);
+    if (setvbuf(stdin, NULL, _IONBF, 0) < 0) {
+	fprintf(stderr, "unable to setvbuf: %s\n", strerror(errno));
+    }
     
-    /* Return if there is only white spaces */
-    if (*cp == '\0')
-	return NULL;
-    
-    /* skip a commented line */
-    if (*cp == '!' || *cp == '#')
-	return NULL;
-    
-    /* Copy each command piece and set into vector. */
-    while (1) {
-
-	if (*cp == '\0') {
-	    vec = (char **)realloc(vec, (i + 1) * sizeof(char *));
-	    vec[i] = NULL;
-	    return vec;
+    printf("MONOBOOT booting in %ds\npress a key for a shell", delay);
+    while (delay--) {
+	printf(".");
+        if (signal(SIGALRM, sig_alrm) == SIG_ERR) {
+	    fprintf(stderr, "signal: %s\n", strerror(errno));
+	    set_canonical(1);
+	    return(-1);
 	}
-
-	vec = (char **)realloc(vec, (i + 1) * sizeof(char *));
-	if (vec == NULL) {
-	    printf("realloc failed: %s\n", strerror(errno));
-	    return NULL;
+	if (setjmp(env_alrm) == 0) {
+	    alarm(1);
+	    c = getchar();
 	}
-
-	vec[i] = cp;
-	i++;
-
-	while (!(isspace ((int) *cp) || *cp == '\r' || *cp == '\n') &&
-	       *cp != '\0')
-	    cp++;
-	
-	while ((isspace ((int) *cp) || *cp == '\n' || *cp == '\r') &&
-	       *cp != '\0') {
-	    *cp = '\0';
-	    cp++;
+	if (c) {
+	    alarm(0);
+	    printf("\ngot keypress\n");
+	    set_canonical(1);
+	    return(0);
 	}
+    }
+
+    printf("\n");
+    set_canonical(1);
+    return(1);
+}
+
+/* set/unset ICANON and ECHO flags */
+void set_canonical(int flag) {
+    struct termios term;
+    
+    if (tcgetattr(STDIN_FILENO, &term) < 0) {
+	fprintf(stderr, "unable to tcgetattr: %s\n", strerror(errno));
+    }
+
+    if (flag) {
+	term.c_lflag |= ICANON;
+	term.c_lflag |= ECHO;
+    } else {
+	term.c_lflag &= ~ICANON;
+	term.c_lflag &= ~ECHO;
+    }
+
+    if (tcsetattr(STDIN_FILENO, TCSANOW, &term) < 0) {
+	fprintf(stderr, "unable to tcsetattr: %s\n", strerror(errno));
     }
 }
 
-/* free a list allocated for a split cmdline */
-
-void cmdline_free(char **vec) {
-    free(vec);
+int cli_cmd_boot(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        return cmd_boot(cli, cfg, argv);
 }
 
-/* 
- * Read a string, and return a pointer to it.
- * Returns NULL on EOF. 
- */
-
-char *rl_gets () {
-    /* If the buffer has already been allocated,
-       return the memory to the free pool. */
-    if (line_read) {
-	free (line_read);
-	line_read = (char *)NULL;
-    }
-    
-    /* Get a line from the user. */
-    line_read = readline (mb_prompt);
-    
-    /* If the line has any text in it,
-       save it on the history. */
-    if (line_read && *line_read)
-	add_history (line_read);
-    
-    return (line_read);
+int cli_cmd_show_running_config(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        return cmd_show_run(cli, cfg, argv);
 }
 
-/*
- * set the mbsh prompt
- */
-
-void set_mb_prompt (char *prompt) {
-    /* must clobber previous longer prompt with our NULL, hence weird
-       + 1 */
-    strncpy(mb_prompt, prompt, strlen(prompt) + 1);
+int cli_cmd_show_startup_config(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        return cmd_show_start(cli, cfg, argv);
 }
 
-/* 
- * set up libreadline - 
- *  turn off tabbing of filenames
- *  custom complete?
- */
-
-void init_readline (void) {
-    rl_bind_key ('\t', rl_insert);
-    set_mb_prompt("mb> ");
+int cli_cmd_show_version(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        return cmd_show_ver(cli, cfg, argv);
 }
 
-/* 
- * loop reading commands from the user, until 
- * they either reboot or start a kernel 
- */
-void mb_interact(cfg_t *cfg) {
-    char **cmdline;
-    int ret;
-    init_readline();
+int cli_cmd_show_disk(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        return cmd_show_disk(cli, cfg, argv);
+}
 
-    while ( (line_read = rl_gets()) != NULL) {
-	cmdline = split_cmdline(line_read);
+int cli_cmd_write(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        return cmd_write(cli, cfg, argv);
+}
 
-	if (cmdline) {
+int cli_cmd_shell(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        return cmd_shell(cli, cfg, argv);
+}
 
-	    /* == EXIT == */
-	    if ( strncmp(cmdline[0], "exit", 4) == 0 ) {
-		ret = cmd_exit(cfg, cmdline);
-	    }
-
-	    if (get_mb_mode() == MB_MODE_CONF || 
-		get_mb_mode() == MB_MODE_CONF_IMAGE ||
-		get_mb_mode() == MB_MODE_CONF_NET ) {
-
-		/* hand all conf mode commands to cmd_conf */
-		ret = cmd_conf(cfg, cmdline);
-
-	    } else if (get_mb_mode() == MB_MODE_EXEC) {
-	  
-		/* == BOOT == */
-		if ( strncmp(cmdline[0], "boot", 4) == 0 ) {
-		    ret = cmd_boot(cfg, cmdline);
-		}
-
-		/* == SHOW == */
-		if ( strncmp(cmdline[0], "show", 4) == 0 ) {
-		    ret = cmd_show(cfg, cmdline);
-		}
-
-		/* == COPY == */
-		if ( strncmp(cmdline[0], "copy", 4) == 0 ) {
-		    ret = cmd_copy(cfg, cmdline);
-		}
-
-		/* == CONF == */
-		if ( strncmp(cmdline[0], "conf", 4) == 0 ) {
-		    ret = cmd_conf(cfg, cmdline);
-		}
-
-		/* == WRITE == */
-		if ( strncmp(cmdline[0], "write", 5) == 0 ) {
-		    ret = cmd_write(cfg, cmdline);
-		}
-
-		/* == SHELL == */
-		if ( strncmp(cmdline[0], "shell", 5) == 0 ) {
-		    ret = cmd_shell(cfg, cmdline);
-		}
-
-	    } else {
-		/* unknown mode */
-	    }
+int cli_cmd_config_image(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+	if (argc < 1)
+	{
+		cli_print(cli, "Specify an image to configure");
+		return CLI_OK;
 	}
-	cmdline_free(cmdline);
-    }
-    MB_DEBUG("\n[mb] mb_interact: exiting mb_interact\n");
+
+        cli_set_configmode(cli, MODE_CONFIG_IMAGE, argv[1]);
+	return CLI_OK;
 }
 
-
-/* cli mode get/set */
-void set_mb_mode(int mode) {
-    mb_mode = mode;
-}
-int get_mb_mode(void) {
-    return mb_mode;
+int cli_cmd_config_net(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+        cli_set_configmode(cli, MODE_CONFIG_NET, NULL);
+	return CLI_OK;
 }
 
-/* cli current-image get/set */
-void set_mb_image(char *image) {
-    if (mb_image == NULL)
-	mb_image = (char *)malloc(sizeof(char) * MB_IMAGE_MAX);
-    strncpy(mb_image, image, strlen(image));
-    mb_image[strlen(image)] = '\0';
-}
-char *get_mb_image(void) {
-    return mb_image;
+int cli_cmd_config_mode_exit(struct cli_def *cli, char *command, char *argv[], int argc)
+{
+	cli_set_configmode(cli, MODE_CONFIG, NULL);
+	return CLI_OK;
 }
 
-/* cli current-network get/set */
-void set_mb_network(char *network) {
-    if (mb_network == NULL)
-	mb_network = (char *)malloc(sizeof(char) * MB_NETWORK_MAX);
-    strncpy(mb_network, network, strlen(network));
-    mb_network[strlen(network)] = '\0';
-}
-char *get_mb_network(void) {
-    return mb_network;
+void mb_interact(cfg_t *cfg)
+{
+        struct cli_command *c;
+        struct cli_def *cli;
+
+        cli = cli_init();
+        cli_set_banner(cli, "monoboot shell");
+        cli_set_hostname(cli, "mb");
+        cli_set_newline(cli, "\n");
+        
+        cli_register_command(cli, NULL, "boot", cli_cmd_boot, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+
+        c = cli_register_command(cli, NULL, "show", NULL, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+        cli_register_command(cli, c, "running-config", cli_cmd_show_running_config, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+        cli_register_command(cli, c, "startup-config", cli_cmd_show_startup_config, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+        cli_register_command(cli, c, "version", cli_cmd_show_version, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+        cli_register_command(cli, c, "disk", cli_cmd_show_disk, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+        
+        cli_register_command(cli, NULL, "write", cli_cmd_write, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+        cli_register_command(cli, NULL, "shell", cli_cmd_shell, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+
+        c = cli_register_command(cli, NULL, "copy", NULL, PRIVILEGE_UNPRIVILEGED, MODE_EXEC, NULL);
+        
+        cli_register_command(cli, NULL, "image", cli_cmd_config_image, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "Create an image tag");
+        cli_register_command(cli, NULL, "exit", cli_cmd_config_mode_exit, PRIVILEGE_PRIVILEGED, MODE_CONFIG_IMAGE, "Exit from image configuration");
+        cli_register_command(cli, NULL, "network", cli_cmd_config_net, PRIVILEGE_PRIVILEGED, MODE_CONFIG, "Configure the network");
+        cli_register_command(cli, NULL, "exit", cli_cmd_config_mode_exit, PRIVILEGE_PRIVILEGED, MODE_CONFIG_NET, "Exit from network configuration");
+        
+        set_canonical(0);
+        cli_loop(cli, STDIN_FILENO, STDOUT_FILENO);
+        set_canonical(1);
+        
+        cli_done(cli);
 }

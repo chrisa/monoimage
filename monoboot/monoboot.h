@@ -1,5 +1,7 @@
 /* $Id$ */
 
+#include <libcli.h>
+
 /* magic numbers */
 
 #define MB_IMAGE_MAX    32
@@ -35,13 +37,10 @@
 #define MOUNT_BINARY "/bin/mount"
 #define RSYNC_BINARY "/usr/bin/rsync"
 
-/* CLI modes */
+/* CLI config modes */
 
-#define MB_MODE_EXEC       0
-#define MB_MODE_CONF       1
-#define MB_MODE_CONF_IMAGE 2
-#define MB_MODE_CONF_NET   3
-
+#define MODE_CONFIG_IMAGE 1
+#define MODE_CONFIG_NET   2
 
 /* CLI errors */
 
@@ -51,6 +50,7 @@
 #define MB_ERR_KEXECFAIL   -4
 
 /* cmdline errors */
+
 #define MB_CMDLINE_NOPROC  -1
 #define MB_CMDLINE_PARSE   -2
 
@@ -65,7 +65,6 @@ void show_config(cfg_t *cfg);
 void drop_config(cfg_t *cfg);
 void save_config(cfg_t *cfg);
 int check_last(cfg_t *cfg, char* bootimage);
-int get_keypress(int delay);
 
 /* exec functions */
 
@@ -77,24 +76,25 @@ void do_exit (void);
 /* CLI functions */
 
 void mb_interact(cfg_t *cfg);
-void set_mb_mode(int);
-int get_mb_mode(void);
-void set_mb_image(char *);
-char *get_mb_image(void);
-void set_mb_network(char *);
-char *get_mb_network(void);
-void set_mb_prompt(char *);
+int get_keypress(int delay);
+void set_canonical(int flag);
 
+/* extra libconfuse public function */
+
+void add_section(cfg_t *cfg, char *name, char *title);
 
 /* command functions */
 
-int cmd_boot(cfg_t *, char **);
-int cmd_show(cfg_t *, char **);
-int cmd_copy(cfg_t *, char **);
-int cmd_conf(cfg_t *, char **);
-int cmd_exit(cfg_t *, char **);
-int cmd_write(cfg_t *, char **);
-int cmd_shell(cfg_t *, char **);
+int cmd_boot(struct cli_def *, cfg_t *, char **);
+int cmd_show_run(struct cli_def *, cfg_t *, char **);
+int cmd_show_start(struct cli_def *, cfg_t *, char **);
+int cmd_show_ver(struct cli_def *, cfg_t *, char **);
+int cmd_show_disk(struct cli_def *, cfg_t *, char **);
+int cmd_copy(struct cli_def *, cfg_t *, char **);
+int cmd_conf(struct cli_def *, cfg_t *, char **);
+int cmd_exit(struct cli_def *, cfg_t *, char **);
+int cmd_write(struct cli_def *, cfg_t *, char **);
+int cmd_shell(struct cli_def *, cfg_t *, char **);
 
 /* util functions */
 char *get_kernel_console(void);
