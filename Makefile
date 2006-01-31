@@ -15,10 +15,13 @@ all:
 	$(MAKE) -C kexec-tools
 	$(MAKE) -C gpio
 
+libcli/libcli.a: 
+	$(MAKE) -C libcli
+
 initrd: linuxrc/linuxrc
 	$(MAKE) -C initrd
 
-monoboot/monoboor: 
+monoboot/monoboot: libcli/libcli.a
 	$(MAKE) -C monoboot
 
 linuxrc/linuxrc:
