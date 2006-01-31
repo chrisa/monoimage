@@ -31,7 +31,7 @@ $(STATICLIB): libcli.o
 	$(CC) $(CPPFLAGS) $(CFLAGS) -fPIC -o $@ -c $^
 
 clitest: clitest.o $(STATICLIB)
-	$(CC) $(CPPFLAGS) $(CFLAGS) -o $@ $^
+	$(CC) $(CPPFLAGS) $(CFLAGS) $(LIBS) -o $@ $^
 
 clean:
 	rm -f *.o $(LIB)* clitest
