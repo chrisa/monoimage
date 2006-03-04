@@ -21,7 +21,7 @@ libcli/libcli.a:
 initrd: linuxrc/linuxrc
 	$(MAKE) -C initrd
 
-monoboot/monoboot: libcli/libcli.a
+monoboot/monoboot: ../libcli/libcli.a
 	$(MAKE) -C monoboot
 
 linuxrc/linuxrc:
@@ -33,6 +33,7 @@ clean:
 	$(MAKE) -C initrd clean
 	$(MAKE) -C kexec-tools clean
 	$(MAKE) -C gpio clean
+	$(MAKE) -C libcli clean
 
 install:
 	$(MAKE) -C monoboot install
