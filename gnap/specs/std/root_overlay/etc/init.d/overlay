@@ -1,0 +1,188 @@
+#!/sbin/runscript
+
+depend() {
+	need checkroot
+	before hostname
+}
+
+domd5sum() {
+	/usr/bin/md5sum ${MNTDIR}/$1 | awk '{print $1}'
+}
+
+start() {
+	ebegin "Overlaying files"
+	/bin/tar -zx --no-same-owner -C / -f /mnt/cdrom/overlay.tgz
+	eend $? "Failed to overlay files"
+	if [ -e /etc/overlay.conf ]; then
+		source /etc/overlay.conf
+
+		# Deprecated, use RW_SYNC instead
+		if [ "${RW_OVERLAY}" != "" ]; then
+			ebegin "Overlaying from ${RW_OVERLAY} r/w overlay"
+			mount "${RW_OVERLAY}" /mnt/gentoo && \
+				cp -rp /mnt/gentoo/* / && \
+				umount /mnt/gentoo
+			eend $? "Failed to overlay files"
+		fi
+		
+		if [ "${RW_SYNC}" != "" ]; then
+			mount "${RW_SYNC}" "${MNTDIR}"
+			ebegin "Sync rw-sync changes from ${RW_SYNC}"
+			
+			if [ -f "${MNTDIR}/${RESFILE}" ]; then
+				# Use rescue file if provided	
+				einfo "Using provided ${RESFILE} rescue file"
+				/bin/tar xpz -C / -f "${MNTDIR}/${RESFILE}"
+				eend $? "Failed to overlay files from ${RESFILE}"
+			else
+				if [ -f "${MNTDIR}/${MD5FILE}" -a -f "${MNTDIR}/${TARFILE}" ]
+				then
+					set -- $(cat "${MNTDIR}/${MD5FILE}")
+					MD5TAR="$1"
+					MD5BAK="$3"
+					
+					if [ "${MD5TAR}" == "$( domd5sum ${TARFILE} )" ]; then
+						# Use regular file if md5sum is ok
+						/bin/tar xpz -C / -f "${MNTDIR}/${TARFILE}"
+						eend $? "Failed to overlay files"
+					
+					elif [ -f "${MNTDIR}/${BAKFILE}" ]; then
+						# Use BAK file if md5sum is ok
+						if [ "${MD5BAK}" == "$( domd5sum ${BAKFILE} )" ]; then
+							eerror "md5check failed, using ${BAKFILE}..."
+							/bin/tar xpz -C / -f "/root/${BAKFILE}"
+							eend $? "Failed to overlay files from ${BAKFILE}"
+						else
+							eend 1 "md5checks failed: aborting"
+						fi
+					else
+						eend 1 "md5check failed, no BAK file: aborting"
+					fi
+				else
+					eend 1 "Missing ${TARFILE} or ${MD5FILE} file: aborting"
+				fi
+			fi
+			umount "${MNTDIR}"
+		fi
+		
+		ebegin "Adding services"
+		DONTDEPSCAN=1
+		if [ "${USE_SSH}" == "yes" ]; then
+			ln -snf "/etc/init.d/dropbear" "/etc/runlevels/default/dropbear"
+			DONTDEPSCAN=0
+		fi
+		if [ "${USE_FW}" == "yes" ]; then
+			ln -snf "/etc/init.d/iptables" "/etc/runlevels/boot/iptables"
+			if [ "${FW_TYPE}" == "firehol" ]; then
+			  ln -snf "/etc/init.d/firehol" "/etc/runlevels/default/firehol"
+			else
+			  ln -snf "/etc/init.d/shorewall" "/etc/runlevels/default/shorewall"
+			fi
+			DONTDEPSCAN=0
+		fi
+		# Old syntax compatibility
+		if [ "${USE_CBQ}" == "yes" ]; then
+		  USE_TC=yes
+		  TC_TYPE=cbq
+		fi
+		if [ "${USE_TC}" == "yes" ]; then
+			if [ "${TC_TYPE}" == "htb" ]; then
+			  ln -snf "/etc/init.d/htbinit" "/etc/runlevels/default/htbinit"
+			else
+			  ln -snf "/etc/init.d/cbqinit" "/etc/runlevels/default/cbqinit"
+			fi
+			DONTDEPSCAN=0
+		fi
+		if [ "${USE_VPN}" == "yes" ]; then
+			ln -snf "/etc/init.d/openvpn" "/etc/runlevels/default/openvpn"
+			DONTDEPSCAN=0
+		fi
+		if [ "${USE_DNSDHCP}" == "yes" ]; then
+			ln -snf "/etc/init.d/dnsmasq" "/etc/runlevels/default/dnsmasq"
+			DONTDEPSCAN=0
+		fi
+		if [ -n "${NTPSERVER}" ]; then
+			ln -snf "/etc/init.d/ntpd" "/etc/runlevels/default/ntpd"
+			DONTDEPSCAN=0
+		fi
+		if [ "${USE_PPPOE}" == "yes" ]; then
+			ln -snf "/etc/init.d/rp-pppoe" "/etc/runlevels/default/rp-pppoe"
+			DONTDEPSCAN=0
+		fi
+		if [ "${START_SERVICES}" != "" ]; then
+			for service in ${START_SERVICES} ; do
+				ln -snf "/etc/init.d/${service}" \
+					"/etc/runlevels/default/${service}"
+				DONTDEPSCAN=0
+			done
+		fi
+		if [ -f "/etc/gnap/services_start" ]; then
+			for service in $(cat /etc/gnap/services_start); do
+				ln -snf "/etc/init.d/${service}" \
+						"/etc/runlevels/default/${service}"
+			done
+			DONTDEPSCAN=0
+		fi
+		eend ${DONTDEPSCAN} "No service to add"
+
+		if [ -n "${NBCARDS}" ]; then
+                  if [ ${NBCARDS} -ge 2 ]; then
+		  	ebegin "Adding network cards"
+			ln -snf "/etc/init.d/net.eth1" "/etc/runlevels/default/net.eth1"
+			DONTDEPSCAN=0
+			if [ ${NBCARDS} -ge 3 ]; then
+				ln -snf "/etc/init.d/net.eth2" "/etc/runlevels/default/net.eth2"
+			fi
+		  	if [ ${NBCARDS} -ge 4 ]; then
+				ln -snf "/etc/init.d/net.eth3" "/etc/runlevels/default/net.eth3"
+		  	fi
+			eend 0
+		  fi
+		fi
+
+		if [ "${FW_TYPE}" == "firehol" ]; then
+			rm /etc/init.d/shorewall
+		else
+			rm /etc/init.d/firehol
+		fi
+	
+		if [ ${DONTDEPSCAN} -eq 0 ]; then
+			/sbin/depscan.sh
+			eend 0
+		fi
+		
+		if [ -n "${NTPSERVER}" ]; then
+			ebegin "Setting NTP server location"
+			echo "server ${NTPSERVER}" > /etc/ntpd.conf
+			sed -i "s/^NTPD_OPTS=.*$/NTPD_OPTS=\"-s\"/" /etc/conf.d/ntpd
+			eend $? "Failed to set NTP server"
+		fi
+		if [ -f /etc/gnap/chpasswd ]; then
+			ebegin "Initializing passwords from /etc/chpasswd"
+			/usr/sbin/chpasswd -e < /etc/gnap/chpasswd && rm /etc/gnap/chpasswd
+			eend $? "Failed to initialize passwords"
+		fi
+		if [ "${EMPTY_ROOTPASS}" == "yes" ]; then
+			ebegin "Setting an empty root password"
+			sed -i "s/^root:[^:]*:/root::/" /etc/shadow
+			eend $? "Failed to modify the shadow file"
+		fi
+		if [ -n "${TIMEZONE}" ]; then
+			ebegin "Setting timezone to $TIMEZONE"
+			echo ${TIMEZONE} > /etc/TZ
+			eend $? "Failed to set timezone"
+		fi
+		if [ -n "${KEYMAP}" ]; then
+			ebegin "Setting keyboard map to $KEYMAP"
+			sed -i "s/^KEYMAP=\"us\"/KEYMAP=\"$KEYMAP\"/" /etc/conf.d/keymaps
+			eend $? "Failed to set keymap"
+		fi
+		if [ "${IP_RELAY}" == "yes" ]; then
+			ebegin "Allowing IP routing"
+			sed -i "s/#net.ipv4.ip_forward = 0/net.ipv4.ip_forward = 1/" \
+				/etc/sysctl.conf
+			eend $? "Failed to modify sysctl.conf"
+		fi
+	fi
+	return 0
+}

@@ -1,0 +1,10 @@
+# Configuration File for init.d/overlay and rw-script.sh
+
+MD5FILE="gnap_md5.sum"
+MNTDIR="/mnt/gentoo"
+TMPDIR="/tmp"
+TMPTARFILE="gnapsave.tgz"
+TARFILE="gnap_sav.tgz"
+BAKFILE="gnap_bak.tgz"
+RESFILE="gnap_res.tgz"
+CONFFILE="/etc/rw-sync.cfg"

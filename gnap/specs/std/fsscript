@@ -1,0 +1,36 @@
+#!/bin/bash
+
+# Hack to avoid autoconfig messing up the net config
+sed -i "s/^DHCP=\"yes\"/DHCP=\"noact\"/" /etc/init.d/autoconfig
+
+# We are a liveCD
+echo "export CDBOOT=yes" >> /sbin/functions.sh
+
+# Disable SAVE_ON_STOP for iptables rules
+sed -i "s/^SAVE_ON_STOP=.*$/SAVE_ON_STOP=\"no\"/" /etc/conf.d/iptables
+
+# Undo livecdfs-update damage
+rm /etc/hostname
+rc-update add keymaps boot
+rc-update del modules default
+sed -i "/^.*bashlogin.*$/ d" /etc/inittab
+sed -i "s/^#c1:/c1:/" /etc/inittab
+
+# Disable udev net hotplug
+rm /etc/hotplug/net.agent
+
+# Add overlay to boot critical services
+rc-update add overlay boot
+
+cat > /etc/runlevels/boot/.critical << EOF
+checkroot overlay hostname modules checkfs localmount
+EOF
+
+# Active serial console ttyS0
+sed -i "s/^#s0:.*$/s0:12345:respawn:\/usr\/bin\/gnap-agetty/" /etc/inittab
+
+# Fixup /var/empty permissions, bug #105563
+chown root:root /var/empty
+
+# scp must be called scp otherwise it doesn't work
+mv /usr/bin/{db,}scp

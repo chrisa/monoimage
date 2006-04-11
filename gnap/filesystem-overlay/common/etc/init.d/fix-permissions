@@ -1,0 +1,10 @@
+#!/sbin/runscript
+
+start() {
+	einfo "Chowning user homedirs"
+	for a in ${USERS}
+	do
+		echo $a
+		chown -R ${a}:${a} ~${a}
+	done
+}

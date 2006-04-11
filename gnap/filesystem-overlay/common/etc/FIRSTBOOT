@@ -1,0 +1,5 @@
+#!/bin/bash
+
+echo "Doing initial FS sync"
+echo "#First boot has been and gone, this file has served its purpose" > /etc/FIRSTBOOT
+/usr/bin/rw-sync.sh -w

@@ -1,0 +1,7 @@
+#!/bin/bash
+if [ -f "/etc/gnap/baudrate" ]; then
+	BAUDRATE=`cat /etc/gnap/baudrate`
+else
+	BAUDRATE="19200"
+fi
+/sbin/agetty -L -i $BAUDRATE ttyS0 vt100

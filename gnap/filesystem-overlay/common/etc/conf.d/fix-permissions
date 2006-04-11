@@ -1,0 +1,2 @@
+# space seperated list of users to chown homedir of
+USERS="dunc"
