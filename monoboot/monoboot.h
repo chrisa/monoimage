@@ -19,7 +19,7 @@
 
 /* paths */
 
-#define MB_PATH_CONFIG  "/config"
+#define MB_PATH_CONFIG  "monoboot"
 #define MB_PATH_IMAGES  "/images"
 
 /* config file names */

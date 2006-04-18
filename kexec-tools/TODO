@@ -1,4 +1,0 @@
-- Restore enough state that dos/arbitrary BIOS calls can be run on some platforms.
-  Currently disk related calls are quite likely to blow up.
-- x86 filling in other kernel parameters.
-- Merge reboot via kexec functionality into /sbin/reboot

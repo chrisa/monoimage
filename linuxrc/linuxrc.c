@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <unistd.h>   
 #include <sys/reboot.h>
-#include <monoimage.h>
-#include "loop.h"
+#include <linux/loop.h>
+#include "monoimage.h"
 
 #define IMAGES_DEV "/dev/hda1"
 #define FS_DEV "/dev/hda1"
@@ -28,33 +28,6 @@
  * $Revision$
  *
  */
-
-static int loop_info64_to_old(const struct loop_info64 *info64, struct loop_info *info)
-{
-        memset(info, 0, sizeof(*info));
-        info->lo_number = info64->lo_number;
-        info->lo_device = info64->lo_device;
-        info->lo_inode = info64->lo_inode;
-        info->lo_rdevice = info64->lo_rdevice;
-        info->lo_offset = info64->lo_offset;
-        info->lo_encrypt_type = info64->lo_encrypt_type;
-        info->lo_encrypt_key_size = info64->lo_encrypt_key_size;
-        info->lo_flags = info64->lo_flags;
-        info->lo_init[0] = info64->lo_init[0];
-        info->lo_init[1] = info64->lo_init[1];
-        memcpy(info->lo_name, info64->lo_file_name, LO_NAME_SIZE);
-        memcpy(info->lo_encrypt_key, info64->lo_encrypt_key, LO_KEY_SIZE);
-
-        /* error in case values were truncated */
-        if (info->lo_device != info64->lo_device ||
-            info->lo_rdevice != info64->lo_rdevice ||
-            info->lo_inode != info64->lo_inode ||
-            info->lo_offset != info64->lo_offset)
-                return -EOVERFLOW;
-
-        return 0;
-}
-
 
 int set_loop(const char *device, const char *file, int offset)
 {
@@ -84,20 +57,8 @@ int set_loop(const char *device, const char *file, int offset)
                 return 1;
         }
         if (ioctl(fd, LOOP_SET_STATUS64, &loopinfo64) < 0) {
-                struct loop_info loopinfo;
-                int errsv = errno;
-
-                errno = loop_info64_to_old(&loopinfo64, &loopinfo);
-                if (errno) {
-                        errno = errsv;
-                        fprintf(stderr, "ioctl: LOOP_SET_STATUS64\n");
-                        goto fail;
-                }
-
-                if (ioctl(fd, LOOP_SET_STATUS, &loopinfo) < 0) {
-                        fprintf(stderr, "ioctl: LOOP_SET_STATUS\n");
-                        goto fail;
-                }
+                fprintf(stderr, "ioctl: LOOP_SET_STATUS64\n");
+                goto fail;
         }
 
         close (ffd);

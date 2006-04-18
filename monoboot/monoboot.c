@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
 
     if (interact == 1) {
 	MB_DEBUG("[mb] main: configuring network\n");
-	do_netconf(cfg);
+	/* do_netconf(cfg); */
 	MB_DEBUG("[mb] main: starting interactive cmdline\n");
 	mb_interact(cfg);
     } else {
