@@ -49,11 +49,6 @@ int bzImage_probe(const char *buf, off_t len);
 int bzImage_load(int argc, char **argv, const char *buf, off_t len, 
 	struct kexec_info *info);
 void bzImage_usage(void);
-int do_bzImage_load(struct kexec_info *info,
-	const char *kernel, off_t kernel_len,
-	const char *command_line, off_t command_line_len,
-	const char *initrd, off_t initrd_len,
-	int real_mode_entry, int debug);
 
 int beoboot_probe(const char *buf, off_t len);
 int beoboot_load(int argc, char **argv, const char *buf, off_t len,
@@ -64,4 +59,9 @@ int nbi_probe(const char *buf, off_t len);
 int nbi_load(int argc, char **argv, const char *buf, off_t len,
 	struct kexec_info *info);
 void nbi_usage(void);
+
+int monoimage_probe(const char *buf, off_t len);
+int monoimage_load(int argc, char **argv, const char *buf, off_t len,
+	struct kexec_info *info);
+void monoimage_usage(void);
 #endif /* KEXEC_X86_H */

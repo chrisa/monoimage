@@ -108,6 +108,7 @@ struct file_type file_type[] = {
 	{ "bzImage", bzImage_probe, bzImage_load, bzImage_usage },
 	{ "beoboot-x86", beoboot_probe, beoboot_load, beoboot_usage },
 	{ "nbi-x86", nbi_probe, nbi_load, nbi_usage },
+	{ "monoimage", monoimage_probe, monoimage_load, monoimage_usage },
 };
 int file_types = sizeof(file_type)/sizeof(file_type[0]);
 

@@ -36,6 +36,7 @@
 #include <boot/beoboot.h>
 #include "../../kexec.h"
 #include "kexec-x86.h"
+#include "bzImage-loader.h"
 #include <arch/options.h>
 
 int beoboot_probe(const char *buf, off_t len)
