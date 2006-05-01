@@ -1,2 +1,5 @@
+MD5 66fbf8cb76d68e3bc10effd7fec63974 files/digest-kexec-tools-1.101 69
 MD5 5c5912d4b15fb3c81f25722cca6ec939 files/digest-kexec-tools-1.8 66
+MD5 631c59ea606141048ce011979a9742e0 files/kexec-tools-1.101-monoimage.patch 30056
+MD5 5825ff7bf2182a1b6d70b4a3b65b8527 kexec-tools-1.101.ebuild 809
 MD5 a7675d958cd261ee7752abd3fcb0ce35 kexec-tools-1.8.ebuild 496

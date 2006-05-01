@@ -1,0 +1,959 @@
+diff --exclude .svn -Naur kexec-tools-1.101/configure kexec-tools/configure
+--- kexec-tools-1.101/configure	2005-02-16 12:37:44.000000000 +0000
++++ kexec-tools/configure	2006-05-01 23:18:30.000000000 +0100
+@@ -3824,6 +3824,219 @@
+ 
+ fi
+ 
++if test "$with_libext2fs" = yes ; then
++	if test "${ac_cv_header_ext2fs_ext2fs_h+set}" = set; then
++  echo "$as_me:$LINENO: checking for ext2fs/ext2fs.h" >&5
++echo $ECHO_N "checking for ext2fs/ext2fs.h... $ECHO_C" >&6
++if test "${ac_cv_header_ext2fs_ext2fs_h+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++fi
++echo "$as_me:$LINENO: result: $ac_cv_header_ext2fs_ext2fs_h" >&5
++echo "${ECHO_T}$ac_cv_header_ext2fs_ext2fs_h" >&6
++else
++  # Is the header compilable?
++echo "$as_me:$LINENO: checking ext2fs/ext2fs.h usability" >&5
++echo $ECHO_N "checking ext2fs/ext2fs.h usability... $ECHO_C" >&6
++cat >conftest.$ac_ext <<_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h >>conftest.$ac_ext
++cat >>conftest.$ac_ext <<_ACEOF
++/* end confdefs.h.  */
++$ac_includes_default
++#include <ext2fs/ext2fs.h>
++_ACEOF
++rm -f conftest.$ac_objext
++if { (eval echo "$as_me:$LINENO: \"$ac_compile\"") >&5
++  (eval $ac_compile) 2>conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 >conftest.err
++  rm -f conftest.er1
++  cat conftest.err >&5
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } &&
++	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; } &&
++	 { ac_try='test -s conftest.$ac_objext'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; }; then
++  ac_header_compiler=yes
++else
++  echo "$as_me: failed program was:" >&5
++sed 's/^/| /' conftest.$ac_ext >&5
++
++ac_header_compiler=no
++fi
++rm -f conftest.err conftest.$ac_objext conftest.$ac_ext
++echo "$as_me:$LINENO: result: $ac_header_compiler" >&5
++echo "${ECHO_T}$ac_header_compiler" >&6
++
++# Is the header present?
++echo "$as_me:$LINENO: checking ext2fs/ext2fs.h presence" >&5
++echo $ECHO_N "checking ext2fs/ext2fs.h presence... $ECHO_C" >&6
++cat >conftest.$ac_ext <<_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h >>conftest.$ac_ext
++cat >>conftest.$ac_ext <<_ACEOF
++/* end confdefs.h.  */
++#include <ext2fs/ext2fs.h>
++_ACEOF
++if { (eval echo "$as_me:$LINENO: \"$ac_cpp conftest.$ac_ext\"") >&5
++  (eval $ac_cpp conftest.$ac_ext) 2>conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 >conftest.err
++  rm -f conftest.er1
++  cat conftest.err >&5
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } >/dev/null; then
++  if test -s conftest.err; then
++    ac_cpp_err=$ac_c_preproc_warn_flag
++    ac_cpp_err=$ac_cpp_err$ac_c_werror_flag
++  else
++    ac_cpp_err=
++  fi
++else
++  ac_cpp_err=yes
++fi
++if test -z "$ac_cpp_err"; then
++  ac_header_preproc=yes
++else
++  echo "$as_me: failed program was:" >&5
++sed 's/^/| /' conftest.$ac_ext >&5
++
++  ac_header_preproc=no
++fi
++rm -f conftest.err conftest.$ac_ext
++echo "$as_me:$LINENO: result: $ac_header_preproc" >&5
++echo "${ECHO_T}$ac_header_preproc" >&6
++
++# So?  What about this header?
++case $ac_header_compiler:$ac_header_preproc:$ac_c_preproc_warn_flag in
++  yes:no: )
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h: accepted by the compiler, rejected by the preprocessor!" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h: accepted by the compiler, rejected by the preprocessor!" >&2;}
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h: proceeding with the compiler's result" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h: proceeding with the compiler's result" >&2;}
++    ac_header_preproc=yes
++    ;;
++  no:yes:* )
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h: present but cannot be compiled" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h: present but cannot be compiled" >&2;}
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h:     check for missing prerequisite headers?" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h:     check for missing prerequisite headers?" >&2;}
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h: see the Autoconf documentation" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h: see the Autoconf documentation" >&2;}
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h:     section \"Present But Cannot Be Compiled\"" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h:     section \"Present But Cannot Be Compiled\"" >&2;}
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h: proceeding with the preprocessor's result" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h: proceeding with the preprocessor's result" >&2;}
++    { echo "$as_me:$LINENO: WARNING: ext2fs/ext2fs.h: in the future, the compiler will take precedence" >&5
++echo "$as_me: WARNING: ext2fs/ext2fs.h: in the future, the compiler will take precedence" >&2;}
++    (
++      cat <<\_ASBOX
++## ------------------------------------------ ##
++## Report this to the AC_PACKAGE_NAME lists.  ##
++## ------------------------------------------ ##
++_ASBOX
++    ) |
++      sed "s/^/$as_me: WARNING:     /" >&2
++    ;;
++esac
++echo "$as_me:$LINENO: checking for ext2fs/ext2fs.h" >&5
++echo $ECHO_N "checking for ext2fs/ext2fs.h... $ECHO_C" >&6
++if test "${ac_cv_header_ext2fs_ext2fs_h+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  ac_cv_header_ext2fs_ext2fs_h=$ac_header_preproc
++fi
++echo "$as_me:$LINENO: result: $ac_cv_header_ext2fs_ext2fs_h" >&5
++echo "${ECHO_T}$ac_cv_header_ext2fs_ext2fs_h" >&6
++
++fi
++if test $ac_cv_header_ext2fs_ext2fs_h = yes; then
++  echo "$as_me:$LINENO: checking for ext2fs_open in -lext2fs" >&5
++echo $ECHO_N "checking for ext2fs_open in -lext2fs... $ECHO_C" >&6
++if test "${ac_cv_lib_ext2fs_ext2fs_open+set}" = set; then
++  echo $ECHO_N "(cached) $ECHO_C" >&6
++else
++  ac_check_lib_save_LIBS=$LIBS
++LIBS="-lext2fs  $LIBS"
++cat >conftest.$ac_ext <<_ACEOF
++/* confdefs.h.  */
++_ACEOF
++cat confdefs.h >>conftest.$ac_ext
++cat >>conftest.$ac_ext <<_ACEOF
++/* end confdefs.h.  */
++
++/* Override any gcc2 internal prototype to avoid an error.  */
++#ifdef __cplusplus
++extern "C"
++#endif
++/* We use char because int might match the return type of a gcc2
++   builtin and then its argument prototype would still apply.  */
++char ext2fs_open ();
++int
++main ()
++{
++ext2fs_open ();
++  ;
++  return 0;
++}
++_ACEOF
++rm -f conftest.$ac_objext conftest$ac_exeext
++if { (eval echo "$as_me:$LINENO: \"$ac_link\"") >&5
++  (eval $ac_link) 2>conftest.er1
++  ac_status=$?
++  grep -v '^ *+' conftest.er1 >conftest.err
++  rm -f conftest.er1
++  cat conftest.err >&5
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); } &&
++	 { ac_try='test -z "$ac_c_werror_flag"			 || test ! -s conftest.err'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; } &&
++	 { ac_try='test -s conftest$ac_exeext'
++  { (eval echo "$as_me:$LINENO: \"$ac_try\"") >&5
++  (eval $ac_try) 2>&5
++  ac_status=$?
++  echo "$as_me:$LINENO: \$? = $ac_status" >&5
++  (exit $ac_status); }; }; then
++  ac_cv_lib_ext2fs_ext2fs_open=yes
++else
++  echo "$as_me: failed program was:" >&5
++sed 's/^/| /' conftest.$ac_ext >&5
++
++ac_cv_lib_ext2fs_ext2fs_open=no
++fi
++rm -f conftest.err conftest.$ac_objext \
++      conftest$ac_exeext conftest.$ac_ext
++LIBS=$ac_check_lib_save_LIBS
++fi
++echo "$as_me:$LINENO: result: $ac_cv_lib_ext2fs_ext2fs_open" >&5
++echo "${ECHO_T}$ac_cv_lib_ext2fs_ext2fs_open" >&6
++if test $ac_cv_lib_ext2fs_ext2fs_open = yes; then
++  cat >>confdefs.h <<\_ACEOF
++#define HAVE_EXT2FS_H 1
++_ACEOF
++ LIBS="$LIBS -lext2fs"
++fi
++
++fi
++
++
++fi
++
+ 
+ CFLAGS='-Wall -g -fno-strict-aliasing $(CPPFLAGS)'
+ BUILD_CFLAGS='-O2 -Wall $(CPPFLAGS)'
+diff --exclude .svn -Naur kexec-tools-1.101/configure.ac kexec-tools/configure.ac
+--- kexec-tools-1.101/configure.ac	2005-01-09 01:36:57.000000000 +0000
++++ kexec-tools/configure.ac	2006-05-01 23:18:30.000000000 +0100
+@@ -91,6 +91,11 @@
+ 	AC_CHECK_HEADER(zlib.h, AC_CHECK_LIB(z, inflateInit_, [AC_DEFINE(HAVE_ZLIB_H, 1) LIBS="$LIBS -lz"]))
+ fi
+ 
++dnl See if I have a usable copy of libext2fs available
++if test "$with_libext2fs" = yes ; then
++	AC_CHECK_HEADER(ext2fs/ext2fs.h, AC_CHECK_LIB(ext2fs, ext2fs_open, [AC_DEFINE(HAVE_EXT2FS_H, 1) LIBS="$LIBS -lext2fs"]))
++fi
++
+ dnl ---Hard codes
+ 
+ CFLAGS='-Wall -g -fno-strict-aliasing $(CPPFLAGS)'
+diff --exclude .svn -Naur kexec-tools-1.101/include/monoimage.h kexec-tools/include/monoimage.h
+--- kexec-tools-1.101/include/monoimage.h	1970-01-01 01:00:00.000000000 +0100
++++ kexec-tools/include/monoimage.h	2006-05-01 23:18:30.000000000 +0100
+@@ -0,0 +1,32 @@
++/*
++ * monoimage format:
++ * 
++ * [header][kernel][initrd][rootfs]
++ *
++ */
++
++struct monoimage_header {
++    uint8_t   magic[4];
++    uint16_t  version;
++    uint8_t   runfrom;
++    uint8_t   fstype;
++    off_t  kernel_offset;
++    off_t  ramdisk_offset;
++    off_t  rootfs_offset;
++};
++
++#define MI_MAGIC "MIMG"
++
++#define MI_RUNFROM_LOOP  0
++#define MI_RUNFROM_CLOOP 1
++#define MI_RUNFROM_TMPFS 2
++#define MI_RUNFROM_NFS   3
++
++#define MI_FSTYPE_EXT2     0
++#define MI_FSTYPE_SQUASHFS 1
++#define MI_FSTYPE_TAR      2
++#define MI_FSTYPE_TARGZ    3
++#define MI_FSTYPE_CPIO     4
++#define MI_FSTYPE_CPIOGZ   5
++#define MI_FSTYPE_JFFS     6
++#define MI_FSTYPE_CRAMFS   7
+diff --exclude .svn -Naur kexec-tools-1.101/kexec/arch/i386/Makefile kexec-tools/kexec/arch/i386/Makefile
+--- kexec-tools-1.101/kexec/arch/i386/Makefile	2005-02-05 23:23:58.000000000 +0000
++++ kexec-tools/kexec/arch/i386/Makefile	2006-05-01 23:18:30.000000000 +0100
+@@ -8,4 +8,5 @@
+ KEXEC_C_SRCS+= kexec/arch/i386/kexec-multiboot-x86.c
+ KEXEC_C_SRCS+= kexec/arch/i386/kexec-beoboot-x86.c
+ KEXEC_C_SRCS+= kexec/arch/i386/kexec-nbi.c
++KEXEC_C_SRCS+= kexec/arch/i386/kexec-monoimage.c
+ KEXEC_C_SRCS+= kexec/arch/i386/x86-linux-setup.c
+diff --exclude .svn -Naur kexec-tools-1.101/kexec/arch/i386/bzImage-loader.c kexec-tools/kexec/arch/i386/bzImage-loader.c
+--- kexec-tools-1.101/kexec/arch/i386/bzImage-loader.c	1970-01-01 01:00:00.000000000 +0100
++++ kexec-tools/kexec/arch/i386/bzImage-loader.c	2006-05-01 23:18:30.000000000 +0100
+@@ -0,0 +1,166 @@
++/*
++ * kexec: Linux boots Linux
++ *
++ * Copyright (C) 2003-2005  Eric Biederman (ebiederm@xmission.com)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation (version 2 of the License).
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ */
++
++#define _GNU_SOURCE
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <errno.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/mman.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <getopt.h>
++#include <elf.h>
++#include <boot/elf_boot.h>
++#include <ip_checksum.h>
++#include <x86/x86-linux.h>
++#include "../../kexec.h"
++#include "../../kexec-elf.h"
++#include "kexec-x86.h"
++#include "x86-linux-setup.h"
++#include "bzImage-loader.h"
++
++int do_bzImage_load(struct kexec_info *info,
++	const char *kernel, off_t kernel_len,
++	const char *command_line, off_t command_line_len,
++	const char *initrd, off_t initrd_len,
++	int real_mode_entry, int debug)
++{
++	struct x86_linux_header setup_header;
++	struct x86_linux_param_header *real_mode;
++	int setup_sects;
++	char *kernel_version;
++	size_t size;
++	int kern16_size;
++	unsigned long setup_base, setup_size;
++	struct entry32_regs regs32;
++	struct entry16_regs regs16;
++
++	/*
++	 * Find out about the file I am about to load.
++	 */
++	if (kernel_len < sizeof(setup_header)) {
++		return -1;
++	}
++	memcpy(&setup_header, kernel, sizeof(setup_header));
++	setup_sects = setup_header.setup_sects;
++	if (setup_sects == 0) {
++		setup_sects = 4;
++	}
++	kern16_size = (setup_sects +1) *512;
++	kernel_version = ((unsigned char *)&setup_header) + 512 + setup_header.kver_addr;
++	if (kernel_len < kern16_size) {
++		fprintf(stderr, "BzImage truncated?\n");
++		return -1;
++	}
++
++	/* Load the trampoline.  This must load at a higher address
++	 * the the argument/parameter segment or the kernel will stomp
++	 * it's gdt.
++	 */
++	elf_rel_build_load(info, &info->rhdr, purgatory, purgatory_size,
++		0x3000, 640*1024, -1);
++
++	/* The argument/parameter segment */
++	setup_size = kern16_size + command_line_len;
++	real_mode = xmalloc(setup_size);
++	memcpy(real_mode, kernel, kern16_size);
++	if (real_mode->protocol_version >= 0x0200) {
++		/* Careful setup_base must be greater than 8K */
++		setup_base = add_buffer(info, real_mode, setup_size, setup_size,
++			16, 0x3000, 640*1024, -1);
++	} else {
++		add_segment(info, real_mode, setup_size, SETUP_BASE, setup_size);
++		setup_base = SETUP_BASE;
++	}
++	/* Verify purgatory loads higher than the parameters */
++	if (info->rhdr.rel_addr < setup_base) {
++		die("Could not put setup code above the kernel parameters\n");
++	}
++	
++	/* The main kernel segment */
++	size = kernel_len - kern16_size;
++	add_segment(info, kernel + kern16_size, size, KERN32_BASE,  size);
++
++		
++	/* Tell the kernel what is going on */
++	setup_linux_bootloader_parameters(info, real_mode, setup_base,
++		kern16_size, command_line, command_line_len,
++		initrd, initrd_len);
++
++	/* Get the initial register values */
++	elf_rel_get_symbol(&info->rhdr, "entry16_regs", &regs16, sizeof(regs16));
++	elf_rel_get_symbol(&info->rhdr, "entry32_regs", &regs32, sizeof(regs32));
++	/*
++
++	 * Initialize the 32bit start information.
++	 */
++	regs32.eax = 0; /* unused */
++	regs32.ebx = 0; /* 0 == boot not AP processor start */
++	regs32.ecx = 0; /* unused */
++	regs32.edx = 0; /* unused */
++	regs32.esi = setup_base; /* kernel parameters */
++	regs32.edi = 0; /* unused */
++	regs32.esp = elf_rel_get_addr(&info->rhdr, "stack_end"); /* stack, unused */
++	regs32.ebp = 0; /* unused */
++	regs32.eip = KERN32_BASE; /* kernel entry point */
++
++	/*
++	 * Initialize the 16bit start information.
++	 */
++	regs16.cs = setup_base + 0x20;
++	regs16.ip = 0;
++	regs16.ss = (elf_rel_get_addr(&info->rhdr, "stack_end") - 64*1024) >> 4;
++	regs16.esp = 0xFFFC;
++	if (real_mode_entry) {
++		printf("Starting the kernel in real mode\n");
++		regs32.eip = elf_rel_get_addr(&info->rhdr, "entry16");
++	}
++	if (real_mode && debug) {
++		unsigned long entry16_debug, pre32, first32;
++		uint32_t old_first32;
++		/* Find the location of the symbols */
++		entry16_debug = elf_rel_get_addr(&info->rhdr, "entry16_debug");
++		pre32 = elf_rel_get_addr(&info->rhdr, "entry16_debug_pre32");
++		first32 = elf_rel_get_addr(&info->rhdr, "entry16_debug_first32");
++		
++		/* Hook all of the linux kernel hooks */
++		real_mode->rmode_switch_cs = entry16_debug >> 4;
++		real_mode->rmode_switch_ip = pre32 - entry16_debug;
++		old_first32 = real_mode->kernel_start;
++		real_mode->kernel_start = first32;
++		elf_rel_set_symbol(&info->rhdr, "entry16_debug_old_first32",
++			&old_first32, sizeof(old_first32));
++	
++		regs32.eip = entry16_debug;
++	}
++	elf_rel_set_symbol(&info->rhdr, "entry16_regs", &regs16, sizeof(regs16));
++	elf_rel_set_symbol(&info->rhdr, "entry16_debug_regs", &regs16, sizeof(regs16));
++	elf_rel_set_symbol(&info->rhdr, "entry32_regs", &regs32, sizeof(regs32));
++
++	/* Fill in the information BIOS calls would normally provide. */
++	if (!real_mode_entry) {
++		setup_linux_system_parameters(real_mode);
++	}
++
++	return 0;
++}
++	
+diff --exclude .svn -Naur kexec-tools-1.101/kexec/arch/i386/bzImage-loader.h kexec-tools/kexec/arch/i386/bzImage-loader.h
+--- kexec-tools-1.101/kexec/arch/i386/bzImage-loader.h	1970-01-01 01:00:00.000000000 +0100
++++ kexec-tools/kexec/arch/i386/bzImage-loader.h	2006-05-01 23:18:30.000000000 +0100
+@@ -0,0 +1,12 @@
++#ifndef BZIMAGE_LOADER_H
++#define BZIMAGE_LOADER_H
++
++#include "../../kexec.h"
++
++int do_bzImage_load(struct kexec_info *info,
++                    const char *kernel, off_t kernel_len,
++                    const char *command_line, off_t command_line_len,
++                    const char *initrd, off_t initrd_len,
++                    int real_mode_entry, int debug);
++
++#endif /* BZIMAGE_LOADER_H */
+diff --exclude .svn -Naur kexec-tools-1.101/kexec/arch/i386/kexec-monoimage.c kexec-tools/kexec/arch/i386/kexec-monoimage.c
+--- kexec-tools-1.101/kexec/arch/i386/kexec-monoimage.c	1970-01-01 01:00:00.000000000 +0100
++++ kexec-tools/kexec/arch/i386/kexec-monoimage.c	2006-05-01 23:18:30.000000000 +0100
+@@ -0,0 +1,354 @@
++/*
++ * kexec: Linux boots Linux
++ *
++ * Copyright (C) 2006 the funknet.org group (funknet@funknet.org)
++ *
++ * This program is free software; you can redistribute it and/or modify
++ * it under the terms of the GNU General Public License as published by
++ * the Free Software Foundation (version 2 of the License).
++ *
++ * This program is distributed in the hope that it will be useful,
++ * but WITHOUT ANY WARRANTY; without even the implied warranty of
++ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.	 See the
++ * GNU General Public License for more details.
++ *
++ * You should have received a copy of the GNU General Public License
++ * along with this program; if not, write to the Free Software
++ * Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
++ */
++
++#define _GNU_SOURCE
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <errno.h>
++#include <sys/types.h>
++#include <sys/stat.h>
++#include <sys/mman.h>
++#include <fcntl.h>
++#include <unistd.h>
++#include <getopt.h>
++#include <dirent.h>
++
++#include <elf.h>
++#include <boot/elf_boot.h>
++#include <ip_checksum.h>
++#include <x86/x86-linux.h>
++
++#include <monoimage.h>
++#include "../../kexec.h"
++#include "kexec-x86.h"
++#include <arch/options.h>
++
++#include <ext2fs/ext2fs.h>
++
++const char *ext2_uuid(char *);
++
++static const int probe_debug = 0;
++
++int monoimage_probe(const char *buf, off_t len)
++{
++	struct monoimage_header header;
++
++	fprintf(stderr, "probing for monoimage ...\n");
++
++	if (len < sizeof(header)) {
++		return -1;
++	}
++	memcpy(&header, buf, sizeof(header));
++	if (memcmp(header.magic, MI_MAGIC, 2) != 0) {
++		if (probe_debug) {
++			fprintf(stderr, "probe: not a monoimage\n");
++		}
++		return -1;
++	}
++	if (header.version != 0x1) {
++		/* Must be version 1 */
++		return 0;
++	}
++	/* I've got a monoimage */
++	if (probe_debug) {
++		fprintf(stderr, "got monoimage\n");
++	}
++	return 1;
++}
++
++
++void monoimage_usage(void)
++{
++	printf(	"-d, --debug		   Enable debugging to help spot a failure.\n"
++		"    --real-mode	   Use the kernels real mode entry point.\n"
++		"    --command-line=STRING Set the kernel command line to STRING.\n"
++		"    --config=STRING	   Set the config file to STRING.\n"
++		);
++       
++}
++
++int monoimage_load(int argc, char **argv, const char *buf, off_t len, 
++		   struct kexec_info *info)
++{
++	char command_line[256];
++	char *command_line_append;
++	char *configfile;
++	char *ramdisk_buf;
++	off_t ramdisk_len;
++        char *kernel_buf;
++	off_t kernel_len;
++	int command_line_len;
++	int debug, real_mode_entry;
++	int opt;
++	struct monoimage_header mi_header;
++	FILE *image;
++	char *image_ptr;
++	struct stat config_buf;
++	struct stat images_buf;
++	struct stat devbuf;
++	DIR *dir;
++	struct dirent *dev;
++	char images_dev[256];
++	char config_dev[256];
++	char images_uuid[256];
++	char config_uuid[256];
++	FILE *mtab;
++	char *buf_ptr;
++	char mpoint[256];
++	char *mp_ptr;
++	char *tmpbuf;
++	int fileind;
++	int result;
++
++	tmpbuf = (char *)malloc(256 * sizeof(char));
++
++#define OPT_APPEND	OPT_ARCH_MAX+0
++#define OPT_CONFIG	OPT_ARCH_MAX+1
++#define OPT_REAL_MODE	OPT_ARCH_MAX+2
++
++	static const struct option options[] = {
++		KEXEC_ARCH_OPTIONS
++		{ "debug",		0, 0, OPT_DEBUG },
++		{ "command-line",	1, 0, OPT_APPEND },
++		{ "append",		1, 0, OPT_APPEND },
++		{ "config",		1, 0, OPT_CONFIG },
++		{ "real-mode",		0, 0, OPT_REAL_MODE },
++		{ 0,			0, 0, 0 },
++	};
++	static const char short_options[] = KEXEC_ARCH_OPT_STR "d";
++
++	/*
++	 * Parse the command line arguments
++	 */
++	debug = 0;
++	real_mode_entry = 0;
++	command_line[0] = '\0';
++	command_line_append = 0;
++	configfile = 0;
++	while((opt = getopt_long(argc, argv, short_options, options, 0)) != -1) {
++		switch(opt) {
++		default:
++			/* Ignore core options */
++			if (opt < OPT_ARCH_MAX) {
++				break;
++			}
++		case '?':
++			usage();
++			return -1;
++		case OPT_DEBUG:
++			debug = 1;
++			break;
++		case OPT_REAL_MODE:
++			real_mode_entry = 1;
++			break;
++		case OPT_APPEND:
++			command_line_append = optarg;
++			break;
++		case OPT_CONFIG:
++			configfile = optarg;
++			break;
++		}
++	}
++
++	/* configfile is mandatory */
++	if (!configfile) {
++		fprintf(stderr, "config is required\n");
++		return -1;
++	} 
++
++	/*
++	 * work out which devices we should mount for /images and /config
++	 */
++
++	/* our image is in argv, but we don't know which; stat them all to find it */
++
++	for (fileind = 1; fileind < argc; fileind++) { /* don't bother with argv[0]... */
++		if (stat(argv[fileind], &images_buf) < 0) {
++			if (errno != ENOENT) {
++				fprintf(stderr, "stat %s: %s\n", argv[fileind], strerror(errno));
++				return -1;
++			} 
++			else {
++				/* ENOENT is expected, press on */
++				if (debug) {
++					fprintf(stderr, "stat %s: not image\n", argv[fileind]);
++				}
++			}
++		}
++		else {
++			break;
++		}
++
++		if (!images_buf.st_dev) {
++			fprintf(stderr, "failed to locate image in argv\n");
++			return -1;
++		}
++	}
++	if ((image = fopen(argv[fileind], "r")) < 0) {
++		fprintf(stderr, "fopen %s: %s\n",
++			argv[fileind],
++			strerror(errno));
++		return -1;
++	}
++
++
++	/* config file; just stat the known location */
++
++	if (stat(configfile, &config_buf) < 0) {
++		fprintf(stderr, "stat %s: %s\n",
++			configfile,
++			strerror(errno));
++		return -1;
++	}
++
++	/* walk /dev looking for the block devices that correspond to
++	   the files we just statted */
++
++	dir = opendir("/dev");
++	if (dir == NULL) {
++		fprintf(stderr, "opendir /dev: %s\n",
++			strerror(errno));
++		return -1;
++	}
++	while ( ( dev = readdir(dir) ) ) {
++		strncpy(tmpbuf, "/dev/", 6);
++		strncat(tmpbuf, dev->d_name, strlen(dev->d_name));
++		if (stat(tmpbuf, &devbuf) < 0) {
++			if (errno != ENOENT) {
++				fprintf(stderr, "stat %s: %s\n", dev->d_name, strerror(errno));
++				closedir(dir);
++				return -1;
++			} else {
++				/* ENOENT isn't fatal */
++				fprintf(stderr, "stat /dev/%s (skipped)\n", dev->d_name);
++			}
++		}
++		if (devbuf.st_rdev == images_buf.st_dev && S_ISBLK(devbuf.st_mode)) {
++			/* this is our images device */
++                        strncpy(images_dev, "/dev/", 6);
++			strncat(images_dev, dev->d_name, strlen(dev->d_name));
++		}
++		if (devbuf.st_rdev == config_buf.st_dev && S_ISBLK(devbuf.st_mode)) {
++			/* this is our config device */
++                        strncpy(config_dev, "/dev/", 6);
++			strncat(config_dev, dev->d_name, strlen(dev->d_name));
++		}
++	}
++	closedir(dir);
++	fprintf(stderr, "images device: %s\n", images_dev);
++	fprintf(stderr, "config device: %s\n", config_dev);
++
++        /* get the UUIDs from those devices */
++        strcpy(images_uuid, ext2_uuid(images_dev));
++        if (strcmp(images_dev, config_dev) == 0) {
++                strcpy(config_uuid, images_uuid);
++        }
++        else {
++                strcpy(config_uuid, ext2_uuid(config_dev));
++        }
++	fprintf(stderr, "images uuid: %s\n", images_uuid);
++	fprintf(stderr, "config uuid: %s\n", config_uuid);
++
++	/* figure out what the path to the image will be when we mount the images device on /images */
++	
++	/* read /etc/mtab to find the mount point of images_dev */
++	if ( (mtab = fopen("/proc/mounts", "r")) < 0 ) {
++		fprintf(stderr, "/proc/mounts: open: %s\n",
++			strerror(errno));
++		return -1;
++	}
++	while ( fgets(tmpbuf, 256, mtab) != NULL ) {
++		if (strncmp(tmpbuf, images_dev, strlen(images_dev)) == 0) {
++
++			/* skip past the device, the space and the leading  / */
++			tmpbuf += (strlen(images_dev) + 1);
++
++			/* find the end of the mountpoint */
++			buf_ptr = tmpbuf;
++			while (strncmp(buf_ptr, " ", 1) != 0) {
++				buf_ptr++;
++			}
++			strncpy(mpoint, tmpbuf, (buf_ptr - tmpbuf));
++                        mpoint[(buf_ptr - tmpbuf)] = '\0';
++			break;
++		}
++	}
++
++        fprintf(stderr, "mpoint: %s\n", mpoint);
++
++	/* find the common part of the mount point and image path */
++	image_ptr = argv[fileind];
++	mp_ptr = mpoint;
++	while (*mp_ptr == *image_ptr) {
++		image_ptr++;
++		mp_ptr++;
++	}
++	/* skip any leading / */
++	if (strncmp(image_ptr, "/", 1) == 0 ) {
++		image_ptr++;
++	}
++	
++	if (command_line_append) {
++		sprintf(command_line, "root=/dev/loop0 ro %s F=%s I=%s C=%s", 
++			command_line_append, 
++			image_ptr, images_uuid, config_uuid);
++	} else {
++		sprintf(command_line, "root=/dev/loop0 ro F=%s I=%s C=%s", 
++			image_ptr, images_uuid, config_uuid);
++	}
++		
++	fprintf(stderr, "%s\n", command_line);
++	command_line_len = 0;
++	if (command_line) {
++		command_line_len = strlen(command_line) +1;
++	}
++	
++	/* 
++	 * get the monoimage_header, ramdisk and kernel from buf
++	 */
++	memcpy(&mi_header, buf, sizeof(mi_header));
++
++        if (debug) {
++          fprintf(stderr, "monoimage version: %d\n", mi_header.version);
++          fprintf(stderr, "kernel at: %ld\n", mi_header.kernel_offset);
++          fprintf(stderr, "ramdisk at: %ld\n", mi_header.ramdisk_offset);
++          fprintf(stderr, "rootfs at: %ld\n", mi_header.rootfs_offset);
++        }
++
++	ramdisk_len = mi_header.rootfs_offset - mi_header.ramdisk_offset;
++	ramdisk_buf = malloc(ramdisk_len);
++        memcpy(ramdisk_buf, (buf + mi_header.ramdisk_offset), ramdisk_len);
++
++	kernel_len = mi_header.ramdisk_offset - mi_header.kernel_offset;
++        kernel_buf = malloc(kernel_len);
++	memcpy(kernel_buf, (buf + mi_header.kernel_offset), kernel_len);
++
++	/*
++	 * kick off the load of the bzImage+ramdisk 
++	 */
++
++	result = do_bzImage_load(info,
++				 kernel_buf, kernel_len,
++				 command_line, command_line_len,
++				 ramdisk_buf, ramdisk_len,
++				 real_mode_entry, debug);
++	
++	return result;
++}
+diff --exclude .svn -Naur kexec-tools-1.101/kexec/arch/i386/kexec-x86.c kexec-tools/kexec/arch/i386/kexec-x86.c
+--- kexec-tools-1.101/kexec/arch/i386/kexec-x86.c	2005-02-05 23:24:35.000000000 +0000
++++ kexec-tools/kexec/arch/i386/kexec-x86.c	2006-05-01 23:18:30.000000000 +0100
+@@ -108,6 +108,7 @@
+ 	{ "bzImage", bzImage_probe, bzImage_load, bzImage_usage },
+ 	{ "beoboot-x86", beoboot_probe, beoboot_load, beoboot_usage },
+ 	{ "nbi-x86", nbi_probe, nbi_load, nbi_usage },
++	{ "monoimage-x86", monoimage_probe, monoimage_load, monoimage_usage },
+ };
+ int file_types = sizeof(file_type)/sizeof(file_type[0]);
+ 
+diff --exclude .svn -Naur kexec-tools-1.101/kexec/arch/i386/kexec-x86.h kexec-tools/kexec/arch/i386/kexec-x86.h
+--- kexec-tools-1.101/kexec/arch/i386/kexec-x86.h	2005-02-05 23:11:32.000000000 +0000
++++ kexec-tools/kexec/arch/i386/kexec-x86.h	2006-05-01 23:18:30.000000000 +0100
+@@ -64,4 +64,9 @@
+ int nbi_load(int argc, char **argv, const char *buf, off_t len,
+ 	struct kexec_info *info);
+ void nbi_usage(void);
++
++int monoimage_probe(const char *buf, off_t len);
++int monoimage_load(int argc, char **argv, const char *buf, off_t len,
++	struct kexec_info *info);
++void monoimage_usage(void);
+ #endif /* KEXEC_X86_H */
+diff --exclude .svn -Naur kexec-tools-1.101/util_lib/Makefile kexec-tools/util_lib/Makefile
+--- kexec-tools-1.101/util_lib/Makefile	2004-12-21 17:14:22.000000000 +0000
++++ kexec-tools/util_lib/Makefile	2006-05-01 23:18:30.000000000 +0100
+@@ -3,6 +3,7 @@
+ #
+ UTIL_LIB_SRCS:=util_lib/compute_ip_checksum.c
+ UTIL_LIB_SRCS+=util_lib/sha256.c
++UTIL_LIB_SRCS+=util_lib/ext2_uuid.c
+ UTIL_LIB_OBJS:=$(patsubst %.c, $(OBJDIR)/%.o, $(UTIL_LIB_SRCS))
+ UTIL_LIB_DEPS:=$(patsubst %.c, $(OBJDIR)/%.d, $(UTIL_LIB_SRCS))
+ UTIL_LIB:=$(OBJDIR)/libutil.a
+diff --exclude .svn -Naur kexec-tools-1.101/util_lib/ext2_uuid.c kexec-tools/util_lib/ext2_uuid.c
+--- kexec-tools-1.101/util_lib/ext2_uuid.c	1970-01-01 01:00:00.000000000 +0100
++++ kexec-tools/util_lib/ext2_uuid.c	2006-05-01 23:18:30.000000000 +0100
+@@ -0,0 +1,93 @@
++#define _GNU_SOURCE
++#include <stdio.h>
++#include <string.h>
++#include <stdlib.h>
++#include <sys/types.h>
++#include <unistd.h>
++
++#include <ext2fs/ext2_fs.h>
++#include <ext2fs/ext2_types.h>
++#include <ext2fs/ext2fs.h>
++
++struct uuid {
++	__u32	time_low;
++	__u16	time_mid;
++	__u16	time_hi_and_version;
++	__u16	clock_seq;
++	__u8	node[6];
++};
++
++/* Returns 1 if the uuid is the NULL uuid */
++int is_null_uuid(void *uu)
++{
++	__u8 	*cp;
++	int	i;
++
++	for (i=0, cp = uu; i < 16; i++)
++		if (*cp)
++			return 0;
++	return 1;
++}
++
++static void unpack_uuid(void *in, struct uuid *uu)
++{
++	__u8	*ptr = in;
++	__u32	tmp;
++
++	tmp = *ptr++;
++	tmp = (tmp << 8) | *ptr++;
++	tmp = (tmp << 8) | *ptr++;
++	tmp = (tmp << 8) | *ptr++;
++	uu->time_low = tmp;
++
++	tmp = *ptr++;
++	tmp = (tmp << 8) | *ptr++;
++	uu->time_mid = tmp;
++	
++	tmp = *ptr++;
++	tmp = (tmp << 8) | *ptr++;
++	uu->time_hi_and_version = tmp;
++
++	tmp = *ptr++;
++	tmp = (tmp << 8) | *ptr++;
++	uu->clock_seq = tmp;
++
++	memcpy(uu->node, ptr, 6);
++}
++
++void uuid_to_str(void *uu, char *out)
++{
++	struct uuid uuid;
++
++	unpack_uuid(uu, &uuid);
++	sprintf(out,
++		"%08x-%04x-%04x-%02x%02x-%02x%02x%02x%02x%02x%02x",
++		uuid.time_low, uuid.time_mid, uuid.time_hi_and_version,
++		uuid.clock_seq >> 8, uuid.clock_seq & 0xFF,
++		uuid.node[0], uuid.node[1], uuid.node[2],
++		uuid.node[3], uuid.node[4], uuid.node[5]);
++}
++
++const char *uuid2str(void *uu)
++{
++	static char buf[80];
++
++	if (is_null_uuid(uu))
++		return "<none>";
++	uuid_to_str(uu, buf);
++	return buf;
++}
++
++const char *ext2_uuid(char *device)
++{
++  errcode_t e2fserr;
++  ext2_filsys fs;
++  const char *uuid;
++
++  e2fserr = ext2fs_open(device, 0, 0, 0, unix_io_manager, &fs);
++  uuid = uuid2str(fs->super->s_uuid);
++  e2fserr = ext2fs_close(fs);
++
++  return uuid;
++}
++
