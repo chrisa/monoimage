@@ -20,6 +20,13 @@
 #define FS_IMG "failsafe.img"
 #define BUF_MAX 256
 
+/* for debugging don't reboot the machine */
+#ifdef DEBUG
+# define DIE die_halt();
+#else
+# define DIE die_reboot();
+#endif
+
 /*
  *
  * linuxrc.c - monoimage support
@@ -115,9 +122,10 @@ int main (int argc, char **argv)
 {
 	FILE *file;
 	char imagefile[BUF_MAX];
-	char configdev[BUF_MAX];
-	char imagedev[BUF_MAX];
+	char configuuid[BUF_MAX];
+	char imageuuid[BUF_MAX];
 	char cmdline[BUF_MAX];
+        char mountcmd[BUF_MAX];
 	char *value;
 	int offset;
 	struct monoimage_header bi_header;
@@ -129,59 +137,60 @@ int main (int argc, char **argv)
 	if ( mount("proc", "/proc", "proc", 0, NULL) < 0 ) {
 		fprintf(stderr, "mount /proc: %s\n",
 			strerror(errno));
-		die_reboot();
+		DIE;
 	}
 
 	/* open /proc/cmdline, read image filename */
 	if ( (file = fopen("/proc/cmdline", "r")) == NULL ) {
 		fprintf(stderr, "/proc/cmdline: open: %s\n",
 			strerror(errno));
-		die_reboot();
+		DIE;
 	}
 	if ( fgets(cmdline, BUF_MAX, file) == NULL ) {
 		fprintf(stderr, "read /proc/cmdline: %s\n",
 			strerror(errno));
-		die_reboot();
+		DIE;
 	}
 
 	fclose(file);
 
 	/* parse out actual image filename and image/config devices */
-	if ((value = get_cmdline_var(cmdline, "IMAGE")) != NULL) {
+	if ((value = get_cmdline_var(cmdline, "F")) != NULL) {
 	    strcpy(imagefile, "/images/");
 	    strcat(imagefile, value);
 	} else {
-	    fprintf(stderr, "no IMAGE in cmdline\n");
-	    die_reboot();
+	    fprintf(stderr, "no F in cmdline\n");
+	    DIE;
 	} 
 
-	if ((value = get_cmdline_var(cmdline, "IDEV")) != NULL) {
-	    strcpy(imagedev, "/dev/");
-	    strcat(imagedev, value);
+	if ((value = get_cmdline_var(cmdline, "I")) != NULL) {
+	    strcpy(imageuuid, value);
 	} else {
-	    fprintf(stderr, "no IDEV in cmdline\n");
-	    die_reboot();
+	    fprintf(stderr, "no I in cmdline\n");
+	    DIE;
 	} 
 
-	if ((value = get_cmdline_var(cmdline, "CDEV")) != NULL) {
-	    strcpy(configdev, "/dev/");
-	    strcat(configdev, value);
+	if ((value = get_cmdline_var(cmdline, "C")) != NULL) {
+            strcpy(configuuid, value);
 	} else {
-	    fprintf(stderr, "no CDEV in cmdline\n");
-	    die_reboot();
+	    fprintf(stderr, "no C in cmdline\n");
+	    DIE;
 	} 
 	    
 	fprintf(stderr, "image file: %s\n", imagefile);
-	fprintf(stderr, "image dev:  %s\n", imagedev);
-	fprintf(stderr, "config dev: %s\n", configdev);
+	fprintf(stderr, "image uuid:  %s\n", imageuuid);
+	fprintf(stderr, "config uuid: %s\n", configuuid);
 
-	/* mount imagedev on /images */
-	if ( mount (imagedev, "/images", "ext3", 0, NULL) < 0 ) {
+        fprintf(stderr, "running:\n/bin/mount -nv -t ext3 -U %s /images\n", imageuuid);
+
+	/* mount imageuuid on /images */
+        sprintf(mountcmd, "/bin/mount -nv -t ext3 -U %s /images", imageuuid);
+	if ( system (mountcmd) < 0 ) {
 		fprintf(stderr, "mount /images: %s\n",
 			strerror(errno));
-		die_reboot();
+		DIE;
 	}
-
+        
 	/* check we can find the image file */
 	if ( stat (imagefile, &s) != 0 ) {
 		fprintf(stderr, "stat %s failed: %s\n",
@@ -199,18 +208,19 @@ int main (int argc, char **argv)
 		if ( umount2("/images",0) != 0) {
 			fprintf(stderr, "umount /images failed: %s\n",
 				strerror(errno));
-			die_reboot();
+                        /* don't die, it might fail to umount 'cos the 
+                           previous mount failed */
 		}
 		if ( mount (FS_DEV, "/images", "ext3", 0, NULL) < 0 ) {
 			fprintf(stderr, "mount failsafe /images: %s\n",
 				strerror(errno));
-			die_reboot();
+			DIE;
 		}
 		if ( stat (imagefile, &s) != 0 ) {
 			fprintf(stderr, "stat failsafe image %s failed: %s\n",
 				imagefile,
 				strerror(errno));
-			die_reboot();
+			DIE;
 		}
 		fprintf(stderr, "using failsafe image %s\n", imagefile);
 	}
@@ -220,13 +230,13 @@ int main (int argc, char **argv)
 		fprintf(stderr, "%s: open: %s\n",
 			imagefile,
 			strerror(errno));
-		die_reboot();
+		DIE;
 	}
 	if ( fread(&bi_header, sizeof(bi_header), 1, file) != 1 ) {
 		fprintf(stderr, "read %s: %s\n",
 			imagefile,
 			strerror(errno));
-		die_reboot();
+		DIE;
 	}
 	offset = bi_header.rootfs_offset;
 	
@@ -234,7 +244,7 @@ int main (int argc, char **argv)
 	if( set_loop("/dev/loop0", imagefile, offset) < 0 ) {
 		fprintf(stderr, "set_loop: %s\n",
 			strerror(errno));
-		die_reboot();
+		DIE;
 	}
 	
 	/* success! */
