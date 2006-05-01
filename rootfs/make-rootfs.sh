@@ -42,9 +42,9 @@ echo making loopback file
 dd if=/dev/zero of=$F bs=1024k count=4
 
 echo mounting it
-losetup /dev/loop0 $F
-mkfs -t ext2 /dev/loop0 4096
-mount /dev/loop0 $M
+losetup /dev/loop/0 $F
+mkfs -t ext2 /dev/loop/0 4096
+mount /dev/loop/0 $M
 
 echo copying stuff in
 cp -pR $T/* $M/
@@ -53,6 +53,6 @@ echo unmounting
 umount $M
 
 echo unlooping
-losetup -d /dev/loop0
+losetup -d /dev/loop/0
 
 echo new rootfs is at $F

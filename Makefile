@@ -9,11 +9,13 @@
 #
 
 all: 
+	$(MAKE) -C libcli
 	$(MAKE) -C linuxrc
 	$(MAKE) -C initrd
 	$(MAKE) -C monoboot
 	$(MAKE) -C kexec-tools
 	$(MAKE) -C gpio
+	$(MAKE) monoimage
 
 libcli/libcli.a: 
 	$(MAKE) -C libcli
@@ -43,3 +45,6 @@ release:
 	mkdir monoimage-tools-$(VERSION)
 	tar cTf MANIFEST - | (cd monoimage-tools-$(VERSION) && tar xvf -)
 	tar zcvf monoimage-tools-$(VERSION).tar.gz monoimage-tools-$(VERSION)
+
+monoimage: initrd/initrd.img bzImage rootfs.img
+	perl utils/makeimage.pl -k bzImage -i initrd/initrd.img -r rootfs.img > monoimage

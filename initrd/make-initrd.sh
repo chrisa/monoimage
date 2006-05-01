@@ -3,8 +3,10 @@
 T=tmp
 C=initrd.img
 
-DIRS="dev proc images"
-DEVS="loop console std hda"
+DIRS="dev proc images lib bin"
+DEVS="loop console std hda hdc"
+LIBS="libncurses.so.5 libdl.so.2 libc.so.6 ld-linux.so.2 libblkid.so.1 libuuid.so.1"
+BINS="sh mount cat"
 
 if [ -x /usr/sbin/mkcramfs ]
 then
@@ -25,6 +27,18 @@ for D in $DIRS
 do
 	echo making $D
 	mkdir $T/$D
+done
+
+for L in $LIBS
+do
+	echo copying library $L
+	cp /lib/$L $T/lib/$L
+done
+
+for B in $BINS
+do
+	echo copying binary $B
+	cp /bin/$B $T/bin/$B
 done
 
 echo copying in linuxrc
