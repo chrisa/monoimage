@@ -7,6 +7,17 @@ DIRS="sbin lib initrd dev"
 DEVS="std console"
 LIBS="libncurses.so.5 libdl.so.2 libc.so.6 ld-linux.so.2"
 
+if [ -x /usr/sbin/mkcramfs ]
+then
+	MKCRAMFS="/usr/sbin/mkcramfs"
+elif [ -x /sbin/mkcramfs ]
+then
+	MKCRAMFS="/sbin/mkcramfs"
+else
+	echo no mkcramfs found
+	exit 1
+fi
+
 rm -Rf $T
 rm -Rf $M
 mkdir $T
@@ -38,21 +49,7 @@ done
 cd ../..
 rm $T/dev/MAKEDEV
 
-echo making loopback file
-dd if=/dev/zero of=$F bs=1024k count=4
-
-echo mounting it
-losetup /dev/loop/0 $F
-mkfs -t ext2 /dev/loop/0 4096
-mount /dev/loop/0 $M
-
-echo copying stuff in
-cp -pR $T/* $M/
-
-echo unmounting
-umount $M
-
-echo unlooping
-losetup -d /dev/loop/0
+echo making cramfs
+$MKCRAMFS $T $F
 
 echo new rootfs is at $F
