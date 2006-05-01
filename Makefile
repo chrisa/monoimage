@@ -22,7 +22,7 @@ libcli/libcli.a:
 
 initrd: initrd/initrd.img
 
-initrd/initrd.img: linuxrc/linuxrc initrd/initrd.img
+initrd/initrd.img: linuxrc/linuxrc
 	$(MAKE) -C initrd
 
 monoboot/monoboot: ../libcli/libcli.a
@@ -52,7 +52,7 @@ release:
 	tar zcvf monoimage-tools-$(VERSION).tar.gz monoimage-tools-$(VERSION)
 
 monoimage: initrd/initrd.img bzImage rootfs.img
-	perl utils/makeimage.pl -k bzImage -i initrd/initrd.img -r rootfs.img > monoimage
+	perl utils/makeimage.pl -d loop -f cramfs -k bzImage -i initrd/initrd.img -r rootfs.img > monoimage
 
 kexec-tools: kexec-tools/config.log
 	$(MAKE) -C kexec-tools
