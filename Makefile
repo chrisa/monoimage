@@ -13,14 +13,16 @@ all:
 	$(MAKE) -C linuxrc
 	$(MAKE) -C initrd
 	$(MAKE) -C monoboot
-	$(MAKE) -C kexec-tools
+	$(MAKE) kexec-tools
 	$(MAKE) -C gpio
 	$(MAKE) monoimage
 
 libcli/libcli.a: 
 	$(MAKE) -C libcli
 
-initrd: linuxrc/linuxrc
+initrd: initrd/initrd.img
+
+initrd/initrd.img: linuxrc/linuxrc initrd/initrd.img
 	$(MAKE) -C initrd
 
 monoboot/monoboot: ../libcli/libcli.a
@@ -28,6 +30,9 @@ monoboot/monoboot: ../libcli/libcli.a
 
 linuxrc/linuxrc:
 	$(MAKE) -C linuxrc
+
+rootfs.img:
+	$(MAKE) -C rootfs
 
 clean:
 	$(MAKE) -C linuxrc clean
@@ -48,3 +53,9 @@ release:
 
 monoimage: initrd/initrd.img bzImage rootfs.img
 	perl utils/makeimage.pl -k bzImage -i initrd/initrd.img -r rootfs.img > monoimage
+
+kexec-tools: kexec-tools/config.log
+	$(MAKE) -C kexec-tools
+
+kexec-tools/config.log:
+	(cd kexec-tools && ./configure --with-libext2fs)
