@@ -34,7 +34,6 @@
 #include <boot/elf_boot.h>
 #include <ip_checksum.h>
 #include <x86/x86-linux.h>
-#include "bzImage-loader.h"
 
 #include <monoimage.h>
 #include "../../kexec.h"
@@ -87,9 +86,9 @@ int monoimage_load(int argc, char **argv, const char *buf, off_t len,
 	char command_line[256];
 	char *command_line_append;
 	char *configfile;
-	const char *ramdisk_buf;
+	char *ramdisk_buf;
 	off_t ramdisk_len;
-	const char *kernel_buf;
+        char *kernel_buf;
 	off_t kernel_len;
 	int command_line_len;
 	int debug, real_mode_entry;
@@ -305,16 +304,20 @@ int monoimage_load(int argc, char **argv, const char *buf, off_t len,
 	 */
 	memcpy(&mi_header, buf, sizeof(mi_header));
 
-	fprintf(stderr, "monoimage version: %d\n", mi_header.version);
-	fprintf(stderr, "kernel at: %ld\n", mi_header.kernel_offset);
-	fprintf(stderr, "ramdisk at: %ld\n", mi_header.ramdisk_offset);
-	fprintf(stderr, "rootfs at: %ld\n", mi_header.rootfs_offset);
+        if (debug) {
+          fprintf(stderr, "monoimage version: %d\n", mi_header.version);
+          fprintf(stderr, "kernel at: %ld\n", mi_header.kernel_offset);
+          fprintf(stderr, "ramdisk at: %ld\n", mi_header.ramdisk_offset);
+          fprintf(stderr, "rootfs at: %ld\n", mi_header.rootfs_offset);
+        }
 
 	ramdisk_len = mi_header.rootfs_offset - mi_header.ramdisk_offset;
-	ramdisk_buf = buf + mi_header.ramdisk_offset;
-	
+	ramdisk_buf = malloc(ramdisk_len);
+        memcpy(ramdisk_buf, (buf + mi_header.ramdisk_offset), ramdisk_len);
+
 	kernel_len = mi_header.ramdisk_offset - mi_header.kernel_offset;
-	kernel_buf = buf + mi_header.kernel_offset;
+        kernel_buf = malloc(kernel_len);
+	memcpy(kernel_buf, (buf + mi_header.kernel_offset), kernel_len);
 
 	/*
 	 * kick off the load of the bzImage+ramdisk 
