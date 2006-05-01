@@ -18,15 +18,16 @@ use constant MI_FSTYPE_TAR      => 2;
 use constant MI_FSTYPE_TARGZ    => 3;
 use constant MI_FSTYPE_CPIO     => 4;
 use constant MI_FSTYPE_CPIOGZ   => 5;
+use constant MI_FSTYPE_CRAMFS   => 6;
 
 my %opt;
-getopts('f:r:k:i:r:', \%opt);
+getopts('d:f:r:k:i:r:', \%opt);
 
 unless ( defined $opt{k} && 
 	 defined $opt{r} && 
 	 defined $opt{i}) {
     
-    print STDERR "usage: -f root-format -r run-from -k kernel -i initrd -r rootfs\n";
+    print STDERR "usage: -f root-format -d run-from device -k kernel -i initrd -r rootfs\n";
     exit 1;
 }
 
@@ -49,6 +50,9 @@ if ($opt{f} eq 'cpio') {
 if ($opt{f} eq 'cpiogz') {
     $format = MI_FSTYPE_CPIOGZ;
 }
+if ($opt{f} eq 'cramfs') {
+    $format = MI_FSTYPE_CRAMFS;
+}
 
 unless (defined $format) {
     print STDERR "defaulting to ext2 root fs\n";
@@ -56,16 +60,16 @@ unless (defined $format) {
 }
 
 my $runfrom;
-if ($opt{r} eq 'loop') {
+if ($opt{d} eq 'loop') {
     $runfrom = MI_RUNFROM_LOOP;
 }
-if ($opt{r} eq 'cloop') {
+if ($opt{d} eq 'cloop') {
     $runfrom = MI_RUNFROM_CLOOP;
 }
-if ($opt{r} eq 'tmpfs') {
+if ($opt{d} eq 'tmpfs') {
     $runfrom = MI_RUNFROM_TMPFS;
 }
-if ($opt{r} eq 'nfs') {
+if ($opt{d} eq 'nfs') {
     $runfrom = MI_RUNFROM_NFS;
 }
 
