@@ -40,6 +40,10 @@
 #include "kexec-x86.h"
 #include <arch/options.h>
 
+#include <ext2fs/ext2fs.h>
+
+const char *ext2_uuid(char *);
+
 static const int probe_debug = 0;
 
 int monoimage_probe(const char *buf, off_t len)
@@ -103,6 +107,8 @@ int monoimage_load(int argc, char **argv, const char *buf, off_t len,
 	struct dirent *dev;
 	char images_dev[256];
 	char config_dev[256];
+	char images_uuid[256];
+	char config_uuid[256];
 	FILE *mtab;
 	char *buf_ptr;
 	char mpoint[256];
@@ -236,16 +242,29 @@ int monoimage_load(int argc, char **argv, const char *buf, off_t len,
 		}
 		if (devbuf.st_rdev == images_buf.st_dev && S_ISBLK(devbuf.st_mode)) {
 			/* this is our images device */
-			strcpy(images_dev, dev->d_name);
+                        strncpy(images_dev, "/dev/", 6);
+			strncat(images_dev, dev->d_name, strlen(dev->d_name));
 		}
 		if (devbuf.st_rdev == config_buf.st_dev && S_ISBLK(devbuf.st_mode)) {
 			/* this is our config device */
-			strcpy(config_dev, dev->d_name);
+                        strncpy(config_dev, "/dev/", 6);
+			strncat(config_dev, dev->d_name, strlen(dev->d_name));
 		}
 	}
 	closedir(dir);
 	fprintf(stderr, "images device: %s\n", images_dev);
 	fprintf(stderr, "config device: %s\n", config_dev);
+
+        /* get the UUIDs from those devices */
+        strcpy(images_uuid, ext2_uuid(images_dev));
+        if (strcmp(images_dev, config_dev) == 0) {
+                strcpy(config_uuid, images_uuid);
+        }
+        else {
+                strcpy(config_uuid, ext2_uuid(config_dev));
+        }
+	fprintf(stderr, "images uuid: %s\n", images_uuid);
+	fprintf(stderr, "config uuid: %s\n", config_uuid);
 
 	/* figure out what the path to the image will be when we mount the images device on /images */
 	
@@ -256,7 +275,6 @@ int monoimage_load(int argc, char **argv, const char *buf, off_t len,
 		return -1;
 	}
 	while ( fgets(tmpbuf, 256, mtab) != NULL ) {
-		tmpbuf += 5;
 		if (strncmp(tmpbuf, images_dev, strlen(images_dev)) == 0) {
 
 			/* skip past the device, the space and the leading  / */
@@ -268,9 +286,12 @@ int monoimage_load(int argc, char **argv, const char *buf, off_t len,
 				buf_ptr++;
 			}
 			strncpy(mpoint, tmpbuf, (buf_ptr - tmpbuf));
+                        mpoint[(buf_ptr - tmpbuf)] = '\0';
 			break;
 		}
 	}
+
+        fprintf(stderr, "mpoint: %s\n", mpoint);
 
 	/* find the common part of the mount point and image path */
 	image_ptr = argv[fileind];
@@ -285,12 +306,12 @@ int monoimage_load(int argc, char **argv, const char *buf, off_t len,
 	}
 	
 	if (command_line_append) {
-		sprintf(command_line, "root=/dev/loop0 ro %s IMAGE=%s IDEV=%s CDEV=%s", 
+		sprintf(command_line, "root=/dev/loop0 ro %s F=%s I=%s C=%s", 
 			command_line_append, 
-			image_ptr, images_dev, config_dev);
+			image_ptr, images_uuid, config_uuid);
 	} else {
-		sprintf(command_line, "root=/dev/loop0 ro IMAGE=%s IDEV=%s CDEV=%s", 
-			image_ptr, images_dev, config_dev);
+		sprintf(command_line, "root=/dev/loop0 ro F=%s I=%s C=%s", 
+			image_ptr, images_uuid, config_uuid);
 	}
 		
 	fprintf(stderr, "%s\n", command_line);

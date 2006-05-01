@@ -3,6 +3,7 @@
 #
 UTIL_LIB_SRCS:=util_lib/compute_ip_checksum.c
 UTIL_LIB_SRCS+=util_lib/sha256.c
+UTIL_LIB_SRCS+=util_lib/ext2_uuid.c
 UTIL_LIB_OBJS:=$(patsubst %.c, $(OBJDIR)/%.o, $(UTIL_LIB_SRCS))
 UTIL_LIB_DEPS:=$(patsubst %.c, $(OBJDIR)/%.d, $(UTIL_LIB_SRCS))
 UTIL_LIB:=$(OBJDIR)/libutil.a

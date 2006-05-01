@@ -91,6 +91,11 @@ if test "$with_zlib" = yes ; then
 	AC_CHECK_HEADER(zlib.h, AC_CHECK_LIB(z, inflateInit_, [AC_DEFINE(HAVE_ZLIB_H, 1) LIBS="$LIBS -lz"]))
 fi
 
+dnl See if I have a usable copy of libext2fs available
+if test "$with_libext2fs" = yes ; then
+	AC_CHECK_HEADER(ext2fs/ext2fs.h, AC_CHECK_LIB(ext2fs, ext2fs_open, [AC_DEFINE(HAVE_EXT2FS_H, 1) LIBS="$LIBS -lext2fs"]))
+fi
+
 dnl ---Hard codes
 
 CFLAGS='-Wall -g -fno-strict-aliasing $(CPPFLAGS)'
