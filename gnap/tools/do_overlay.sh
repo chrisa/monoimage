@@ -18,10 +18,6 @@ usage() {
 }
 
 test_options() {
-	if [[ ! -d ${OUT_DIR} ]]; then
-		echo "output_dir ${OUT_DIR} is not a directory"
-		exit 1
-	fi
 	if [[ ! -d ${BASE_DIR} ]]; then
 		echo "base_dir ${BASE_DIR} is not a directory"
 		exit 1
@@ -60,7 +56,6 @@ while getopts ':o:hc:v:b:n:d:' options; do
                 h ) usage
                         exit 0;;
                 d ) BASE_DIR="${OPTARG}";;
-                o ) OUT_DIR="${OPTARG}";;
                 b ) GNAP_OVERLAY="${OPTARG}";;
                 c ) CORE_FILE="${OPTARG}";;
                 n ) NODENAME="${OPTARG}";;
@@ -75,7 +70,7 @@ test_options
 
 
 echo
-echo "Running ${GNAP_OVERLAY} -D ${OUT_DIR} -g ${CORE_FILE} -o ${BASE_DIR}/common -o ${BASE_DIR}/${VPN}/common -o ${BASE_DIR}/${VPN}/${NODENAME} -i gnap.iso"
+echo "Running ${GNAP_OVERLAY} -g ${CORE_FILE} -o ${BASE_DIR}/common -o ${BASE_DIR}/${VPN}/common -o ${BASE_DIR}/${VPN}/${NODENAME} -i gnap.iso"
 
-${GNAP_OVERLAY} -D ${OUT_DIR} -g ${CORE_FILE} -o ${BASE_DIR}/common -o ${BASE_DIR}/${VPN}/common -o ${BASE_DIR}/${VPN}/${NODENAME} -i gnap.iso
+${GNAP_OVERLAY} -g ${CORE_FILE} -o ${BASE_DIR}/common -o ${BASE_DIR}/${VPN}/common -o ${BASE_DIR}/${VPN}/${NODENAME} -i gnap.iso
 
