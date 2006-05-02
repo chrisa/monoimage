@@ -29,19 +29,19 @@ usage() {
 
 test_options() {
         if [[ ! -f ${CORE_FILE} ]]; then
-                echo "Cannon find core file ${CORE_FILE}"
+                echo "Cannot find core file ${CORE_FILE}"
                 exit 1
         fi
         if [[ ! -f ${EXTRA_PASSWD_FILE} ]]; then
-                echo "Cannon find extra passwd file ${EXTRA_PASSWD_FILE}"
+                echo "Cannot find extra passwd file ${EXTRA_PASSWD_FILE}"
                 exit 1
         fi
         if [[ ! -f ${EXTRA_GROUP_FILE} ]]; then
-                echo "Cannon find extra group file ${EXTRA_GROUP_FILE}"
+                echo "Cannot find extra group file ${EXTRA_GROUP_FILE}"
                 exit 1
         fi
         if [[ ! -f ${EXTRA_SHADOW_FILE} ]]; then
-                echo "Cannon find extra shadow file ${EXTRA_SHADOW_FILE}"
+                echo "Cannot find extra shadow file ${EXTRA_SHADOW_FILE}"
                 exit 1
         fi
         if [[ ! -d ${OUT_DIR} ]]; then
