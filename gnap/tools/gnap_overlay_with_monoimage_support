@@ -1,0 +1,433 @@
+#!/bin/bash
+VERSION='2.0'
+
+GNAPNAME=$(basename "$0")
+echo "GNAP overlay tool ${GNAPNAME} ${VERSION}"
+GNAPCORE='/usr/lib/gnap/gnap-core.tar'
+GNAPMBR='/usr/lib/gnap/mbr/mbr.bin'
+TEMPDIR=''
+IMG_SIZE=15
+MONOINITRD=''
+
+G=$'\e[32;01m'
+B=$'\e[31;01m'
+N=$'\e[0m'
+W=$'\e[33;01m'
+K=$'\e[34;01m'
+C="$[$(set -- $(stty size 2>/dev/null); echo ${2}) - 7]"
+E=$'\e['${C}'G'
+
+gwarn() {
+	echo -e " ${W}*${N} ${*}"
+}
+
+ginfo() {
+	echo -e " ${G}*${N} ${*}"
+}
+
+gconfirm() {
+	if [[ "${FORCEYES}" -eq 1 ]]; then
+		gwarn "${*} forced to yes"
+	else
+		read -ep " ${W}*${N} ${*} [N]: " answer
+		if [[ "${answer}" != 'y' && "${answer}" != 'Y' ]]; then
+			if [[ -n "${TEMPDIR}" || -n "${LOOP}" ]]; then
+				cleanup
+			fi
+			echo 'Overlay aborted !'
+			exit 2
+		fi
+	fi
+}
+
+gbegin() {
+	echo -ne " ${G}*${N} ${*}..."
+}
+
+gtest() {
+	continued=0
+	if [[ "$#" -gt 0 && "${1}" == 'continued' ]]; then
+		shift
+		continued=1
+	fi
+
+	if [[ "${#}" -eq 0 || "${1}" -eq 0 ]]; then
+		if [[ "${continued}" -eq 0 ]]; then
+			echo -e "${E}  ${K}[ ${G}ok${K} ]${N}"
+		fi
+	else
+		echo -e "${E}  ${K}[ ${B}!!${K} ]${N}"
+		if [[ "$#" -ge 2 ]]; then
+			shift
+			echo -en " ${B}*${N} ${*}"
+			echo -e "${E}  ${K}[ ${B}!!${K} ]${N}"
+		fi
+		if [[ -n "${TEMPDIR}" || -n "${LOOP}" ]]; then
+			cleanup
+		fi
+		echo "Overlay failed, try ${GNAPNAME} -h for more help"
+		exit 1
+	fi
+}
+
+usage() {
+	echo
+    echo 'Usage:'
+    echo "  ${GNAPNAME} -i isoname -o overlay [ options ]"
+    echo "  ${GNAPNAME} -d hostdisk -r rootdev -o overlay [ options ]"
+    echo "  ${GNAPNAME} -a monoimage -t initrd -o overlay [ options ]"
+    echo
+    echo 'Common options:'
+    echo '  -o overlay    Overlay directory or tbz2 file'
+    echo '  -c conf       overlay.conf file to use (if not in overlays)'
+    echo '  -g gnap_core  Use specific GNAP core tarball file'
+    echo '  -n            Do not use the GNAP castle logo'
+    echo '  -f            Force all answers to yes (dangerous!)'
+    echo
+    echo 'Options for ISO target (create an ISO containing bootable CD):'
+    echo '  -i isoname    Customized LiveCD ISO output file name'
+    echo
+    echo 'Options for disk target (install to a disk plugged in system):'
+    echo '  -d hostdisk   Disk to install to, as seen on current host'
+    echo '  -r rootdev    Boot device name as seen from target system'
+    echo '  -m            Cache filesystem in memory to reduce media wear'
+    echo '  -s            Use serial console on ttyS0'
+    echo
+    echo 'Options for image target (install into a disk image):'
+    echo '  -l image      Use existing image file as output'
+    echo '                Warning: only one partition is supported!'
+    echo '  -L image      Create image file and use it as output'
+    echo '  -S size       Size of image file in megabyte'
+    echo '  The disk target options also apply, except -d.'
+    echo
+    echo 'Options for monoimage target (create a monoimage file):'
+    echo '  -a imgname    Monoimage output filename'
+    echo '  -t initrd     Name of initrd image to include in monoimage'
+    echo
+    echo "Please man ${GNAPNAME} for more details."
+}
+
+cleanup() {
+	if [[ -n "${LOOP}" ]]; then
+		gbegin 'Unmounting loop filesystem'
+		umount "${LOOP}" && losetup -d "${LOOP}"
+		gtest $? "Failed to unmount ${LOOP}"
+	fi
+	gbegin 'Cleaning temporary directories'
+	if [[ -d "${TEMPDIR}" ]]; then
+		DIRTOREMOVE="${TEMPDIR}"
+		TEMPDIR=''
+		rm -rf "${DIRTOREMOVE}"
+		gtest $? "Failed to remove ${DIRTOREMOVE}"
+	else
+		gtest 0
+	fi
+}
+
+if [[ "$#" -eq 0 || "${1}" == '-h' ]]; then
+	usage
+	exit 0
+fi
+
+gbegin 'Checking parameters'
+
+# Read options
+while getopts ':hg:o:c:nfi:d:a:l:r:ms:S:t:L:' options; do
+	case ${options} in
+		h ) usage
+			exit 0;;
+		g ) GNAPCORE="${OPTARG}";;
+		o ) OVERLAYS="${OVERLAYS} ${OPTARG}";;
+		c ) OVERLAYCONF="${OPTARG}";;
+		n ) NOLOGO=1;;
+		f ) FORCEYES=1;;
+		a ) OUTPUT="${OPTARG}"
+			TYPE='monoimage';;
+		i ) OUTPUT="${OPTARG}"
+			TYPE='iso';;
+		d ) OUTPUT="${OPTARG}"
+			TYPE='disk';;
+		l ) OUTPUT="${OPTARG}"
+			TYPE='image'
+			CREATE='n';;
+		L ) OUTPUT="${OPTARG}"
+			TYPE='image'
+			CREATE='y';;
+		S ) IMG_SIZE="${OPTARG}";;
+		r ) TARGETROOT="${OPTARG}";;
+		m ) CACHE='docache ';;
+		s ) SERIAL="console=ttyS0,${OPTARG}n81"
+			BAUDRATE="${OPTARG}";;
+		t ) MONOINITRD="${OPTARG}";;
+		* ) gtest 1 'Specified options are incomplete or unknown !';;
+	esac
+done
+
+# Target type (-a, -i or -d) is needed
+test -n "${TYPE}"
+gtest continued $? 'Please specify a target (-a, -i or -d option)'
+
+# Core file is required
+test -f "${GNAPCORE}"
+gtest continued $? 'Please specify a valid GNAP core file (-g option)'
+
+case "${TYPE}" in
+	disk)
+		# if disk type, doublecheck everything is ok
+		PARENTDEV="${OUTPUT:0:$((${#OUTPUT}-1))}"
+		test -b "${PARENTDEV}"
+		gtest continued $? "${PARENTDEV} device does not exist on this system"
+		test -b "${OUTPUT}"
+		gtest continued $? "${OUTPUT} partition does not exist on this system"
+	;;
+	image)
+		if [[ "${CREATE}" != 'y' ]]; then
+			# Check whether image file exists
+			test -f "${OUTPUT}"
+			gtest continued $? "Image file ${OUTPUT} does not exist."
+		fi
+	;;
+	monoimage)
+		# if type monoimage, check that the initrd image is sound
+		test -f "${MONOINITRD}"
+		gtest continued $? "Initrd file ${MONOINITRD} not found"
+		test "`file ${MONOINITRD} |sed 's!.*Linux\ Compressed\ ROM\ File\ System\ data.*!YES!'`" == 'YES' 
+		gtest continued $? "${MONOINITRD} is not an initrd image."
+	;;
+esac
+
+# At least one overlay is required
+test -n "${OVERLAYS}${OVERLAYCONF}"
+gtest $? 'Please specify at least an overlay (-o) or config file (-c)'
+
+# Warning for disk type targets
+if [[ "${TYPE}" == 'disk' ]]; then
+	gwarn 'Warning : you have selected disk install'
+	gwarn "Make sure you are root or have full access to ${OUTPUT}"
+	gwarn "${PARENTDEV} must have an MBR installed, run:"
+	gwarn "${W}dd if=${GNAPMBR} of=${PARENTDEV} bs=512 count=1${N} if needed"
+	gwarn "${OUTPUT} must contain an active partition:"
+	gwarn " use ${W}fdisk ${PARENTDEV}${N} if needed"
+	gwarn "Current data on ${OUTPUT} will be ${B}destroyed${N} !"
+	gconfirm 'Are you sure you want to continue ?'
+fi
+
+# Common actions
+gbegin "Expanding ${GNAPCORE} core"
+TEMPDIR=$(mktemp -d -t gnap_overlay.XXXXXX)
+gtest continued $? 'Failed to create temporary directory'
+TEMPCOREDIR="${TEMPDIR}/core"
+mkdir "${TEMPCOREDIR}"
+gtest continued $? 'Failed to create core temporary subdirectory'
+tar x -C "${TEMPCOREDIR}" -f "${GNAPCORE}"
+gtest $? 'Failed to extract core'
+
+gbegin 'Preparing overlay'
+TEMPOVERDIR="${TEMPDIR}/overlay"
+mkdir "${TEMPOVERDIR}"
+gtest $? 'Failed to create overlay temporary subdirectory'
+
+if [[ -n "${BAUDRATE}" ]]; then
+	gbegin 'Adding baudrate for serial console'
+	mkdir -p "${TEMPOVERDIR}/etc/gnap" && \
+		echo -n "${BAUDRATE}" > "${TEMPOVERDIR}/etc/gnap/baudrate"
+	gtest $? 'Failed to create /etc/gnap/baudrate'
+fi
+for overlay in ${OVERLAYS} ; do
+	if [[ -d "${overlay}" ]]; then
+		gbegin "Adding ${overlay} (directory overlay)"
+		cp -rp "${overlay}"/* "${TEMPOVERDIR}"
+		gtest $? "Failed to copy ${overlay}"
+	else
+		gbegin "Adding ${overlay} (conflet file)"
+		tar jxf "${overlay}" -C "${TEMPOVERDIR}" 2>/dev/null
+		gtest $? "${overlay} is not a valid conflet file (tbz2 format)"
+	fi
+done
+if [[ -n "${OVERLAYCONF}" ]]; then
+	gbegin "Adding ${OVERLAYCONF} (overlay.conf file)"
+	if [[ ! -d "${TEMPOVERDIR}/etc" ]]; then
+		mkdir "${TEMPOVERDIR}/etc"
+		gtest continued $? 'Failed to create /etc overlay directory'
+	fi
+	cp "${OVERLAYCONF}" "${TEMPOVERDIR}/etc/overlay.conf"
+	gtest $? "Failed to copy ${OVERLAYCONF}"
+fi
+gbegin 'Creating overlay tarball'
+test -f "${TEMPOVERDIR}/etc/overlay.conf"
+gtest continued $? 'Specified overlays do not contain any etc/overlay.conf'
+tar zc -C "${TEMPOVERDIR}" --exclude CVS --exclude .svn \
+	-f "${TEMPCOREDIR}/overlay.tgz" .
+gtest $? 'Failed to create overlay tarball'
+
+DATE=$(date --utc)
+if [[ "${NOLOGO}" -eq 1 ]]; then
+	echo "GNAP ${VERSION}" > "${TEMPCOREDIR}/isolinux/boot.msg"
+fi
+if [[ -n "${OVERLAYS}" ]]; then
+	echo "Overlaid with ${OVERLAYS} on ${DATE}" \
+		>> "${TEMPCOREDIR}/isolinux/boot.msg"
+fi
+
+# Target specific actions
+if [[ "${TYPE}" == 'iso' ]]; then
+	if [[ -f "${OUTPUT}" ]]; then
+		gconfirm "File ${OUTPUT} already exists, overwrite ?"
+	fi
+	rm "${TEMPCOREDIR}/syslinux.cfg"
+	gbegin "Building ${OUTPUT} ISO file"
+	mkisofs -quiet -J -r -l -x "${TEMPCOREDIR}/.." -o "${OUTPUT}" \
+		-b isolinux/isolinux.bin -c isolinux/boot.cat \
+		-no-emul-boot -boot-load-size 4 -boot-info-table "${TEMPCOREDIR}"
+	gtest $?
+
+elif [[ "${TYPE}" == 'monoimage' ]]; then
+	if [[ -f "${OUTPUT}" ]]; then
+		gconfirm "File ${OUTPUT} already exists, overwrite ?"
+	fi
+		TMPMONOOVERDIR="${TEMPDIR}/monoimage_overlay_dir"
+		TMPMONOMNTDIR="${TEMPDIR}/monoimage_mount_dir"
+
+		gbegin "Creating monoimage temporary directories"
+		mkdir ${TMPMONOOVERDIR} && mkdir ${TMPMONOMNTDIR}
+		gtest $? 'Failed to create monoimage temporary directories'
+
+		gbegin "Mounting ${TEMPCOREDIR}/image.squashfs on ${TMPMONOMNTDIR}"
+		mount -o loop -t squashfs "${TEMPCOREDIR}/image.squashfs" "${TMPMONOMNTDIR}"
+		gtest $? "Failed to mount ${TEMPCOREDIR}/image.squashfs"
+		
+		gbegin "Copying image into ${TMPMONOOVERDIR}"
+		cp -pr ${TMPMONOMNTDIR}/* ${TMPMONOOVERDIR}
+		gtest $? "Failed to copy image into ${TMPMONOOVERDIR}"
+		
+		gbegin "Unmounting original image"
+		umount "${TMPMONOMNTDIR}"
+		gtest $? "Failed to unmount original image"
+
+		gbegin "Adding Overlay"
+		tar -zx -C "${TMPMONOOVERDIR}" -f "${TEMPCOREDIR}/overlay.tgz"
+		gtest $? "Failed to add overlay"
+
+		gbegin "Creating new squashfs"
+		mksquashfs "${TMPMONOOVERDIR}" "${TEMPDIR}/image.squashfs.overlayed" -noappend \
+				> /dev/null 2>&1
+		test -f ${TEMPDIR}/image.squashfs.overlayed
+		gtest $? "Failed to create overlayed squashfs"
+
+		gbegin "Creating Monoimage"
+		perl /home/dunc/devel/svn/monoimage/trunk/utils/makeimage.pl \
+			-f squashfs -d loop -k ${TEMPCOREDIR}/isolinux/gentoo \
+			-i ${MONOINITRD} -r ${TEMPDIR}/image.squashfs.overlayed > ${OUTPUT}
+		gtest $? "makeimage.pl failed"
+else
+	if [[ "${TYPE}" == 'image' ]]; then
+		gbegin 'Looking for free loop device'
+		LOOP=''
+		for i in /dev/loop/?* /dev/loop?*; do
+			if [[ -e "${i}" ]]; then
+				if ! losetup "${i}" >/dev/null 2>&1
+				then
+					LOOP="${i}"
+					break
+				fi
+			fi
+		done
+		test -n "${LOOP}"
+		gtest $? 'Unable to find free loop device'
+
+		ginfo "Using loop device ${LOOP}"
+
+		if [[ "${CREATE}"  == y ]]; then
+			if [[ -f "${OUTPUT}" ]]; then
+				gconfirm "File ${OUTPUT} already exists, overwrite ?"
+			fi
+
+			gbegin 'Creating image file'
+			# 1048576 = 1 MiB
+			dd if=/dev/zero of="${OUTPUT}" bs=1048576 count="${IMG_SIZE}" \
+				>/dev/null 2>&1
+			gtest $?
+
+			gbegin 'Creating partition table'
+			# Create one partition of the full size
+			echo '0;;6;*' | sfdisk -D -H 64 -S 32 "${OUTPUT}" >/dev/null 2>&1
+			gtest $?
+		fi
+
+		gbegin 'Reading Cylinder/Heads/Sectors'
+		CHS=$(sfdisk -G "${OUTPUT}" 2>/dev/null)
+		gtest $?
+
+		set -- ${CHS/*:/}
+
+		IMG_CYLINDERS="${1}"
+		IMG_HEADS="${3}"
+		IMG_SECTORS="${5}"
+
+		offset=$[${IMG_SECTORS} * 512]
+
+		ginfo "Offset is ${offset}"
+
+		gbegin "Mounting ${OUTPUT} to ${LOOP}"
+		losetup -o "${offset}" "${LOOP}" "${OUTPUT}"
+		gtest $?
+
+		ORIG_OUTPUT="${OUTPUT}"
+		OUTPUT="${LOOP}"
+	fi
+
+	gbegin "Formatting ${OUTPUT}"
+	mkfs.msdos "${OUTPUT}" > /dev/null 2>&1
+	gtest $?
+
+	gbegin "Mounting ${OUTPUT}"
+	TEMPMOUNTDIR="${TEMPDIR}/mount"
+	mkdir "${TEMPMOUNTDIR}"
+	gtest continued $? 'Failed to create mount temporary subdirectory'
+	mount -t msdos "${OUTPUT}" "${TEMPMOUNTDIR}"
+	gtest $?
+
+	gbegin 'Copying files'
+	cp ${TEMPCOREDIR}/syslinux.cfg			${TEMPMOUNTDIR}/			&&\
+	cp ${TEMPCOREDIR}/isolinux/gentoo.igz	${TEMPMOUNTDIR}/			&&\
+	cp ${TEMPCOREDIR}/isolinux/gentoo		${TEMPMOUNTDIR}/			&&\
+	cp ${TEMPCOREDIR}/isolinux/*.msg		${TEMPMOUNTDIR}/			&&\
+	cp ${TEMPCOREDIR}/livecd				${TEMPMOUNTDIR}/			&&\
+	cp ${TEMPCOREDIR}/overlay.tgz			${TEMPMOUNTDIR}/			&&\
+	cp ${TEMPCOREDIR}/image.squashfs		${TEMPMOUNTDIR}/image.sfs	&&\
+	sed -i \
+		"s:cdroot:cdroot=/dev/${TARGETROOT} ${CACHE}${SERIAL}:" \
+		"${TEMPMOUNTDIR}/syslinux.cfg"
+	gtest $?
+
+	gbegin "Unmounting ${OUTPUT}"
+	umount "${TEMPMOUNTDIR}"
+	gtest $?
+
+	# Is autocleaned so maybe not useful
+	if [[ "${TYPE}" == 'image' ]]; then
+		losetup -d "${LOOP}"
+		LOOP=
+	fi
+
+	export MTOOLS_SKIP_CHECK=1
+	case "${TYPE}" in
+		disk)
+			gbegin 'Syslinuxing'
+			syslinux "${OUTPUT}"
+			gtest $?
+		;;
+		image)
+			gbegin 'Preparing disk for boot'
+			syslinux -o "${offset}" "${ORIG_OUTPUT}" && \
+			dd if="${GNAPMBR}" of="${ORIG_OUTPUT}" bs=512 count=1 \
+				conv=notrunc >/dev/null 2>&1
+			gtest $?
+		;;
+	esac
+fi
+
+# Successful finish
+cleanup
+echo 'Overlay successful !'
+exit 0
